@@ -144,7 +144,7 @@
             $(e).find('.row').each(function(j,$row){
                 $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table><tr></tr></table></td></tr>');
                 $($row).find('.cell').each(function(k, $cell){
-                    $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(generator.cell($($cell).find('input[type="text"]').val()));
+                    $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(generator.cell($($cell).find('input[type="text"]').val(), $($cell).find('input[type="checkbox"]')[0].checked ));
                 });
             });
         });
@@ -172,14 +172,46 @@
 
             cell.append(link);
 
-            var root = $('#img_root').val();
-            img = root + img;
-             if (UrlExists(img + '.jpg')){
-                 cell.find('a').append('<img src="'+img+'.jpg" alt="" style="display: block;"/>');
-             } else {
-                 cell.find('a').append('<img src="'+img+'.png" alt="" style="display: block;"/>');
-             }
+            var workedImg;
+            if(img !== ''){
+                var root = $('#img_root').val();
+                workedImg = root + img;
+                workedImg = workedImg.substr(workedImg.lastIndexOf('/') + 1);
+                var imgDom = new Image();
+            }
 
+            if(!text && img !== ''){
+                if (UrlExists(workedImg + '.jpg')){
+                    imgDom.src = workedImg + '.jpg';
+                    imgDom.onload = function(){
+                        imgDom.setAttribute('alt', '');
+                        imgDom.setAttribute('width', imgDom.width);
+                        imgDom.setAttribute('height', imgDom.height);
+                        console.log(imgDom.height, imgDom.width);
+                        cell.find('a').append(imgDom);
+                    };
+                } else {
+                    imgDom.onload = function(){
+                        imgDom.setAttribute('alt', '');
+                        imgDom.setAttribute('width', imgDom.width);
+                        imgDom.setAttribute('height', imgDom.height);
+                        cell.find('a').append(imgDom);
+                    };
+                    imgDom.src = workedImg + '.png';
+                }
+            }else if(text && img !== ''){
+                if (UrlExists(workedImg + '.jpg')){
+                    imgDom.onload = function(){
+                        cell.attr('width', imgDom.width);
+                    };
+                    imgDom.src = workedImg + '.jpg';
+                } else {
+                    imgDom.onload = function(){
+                        cell.attr('width', imgDom.height);
+                    };
+                    imgDom.src = workedImg + '.png';
+                }
+            }
             return cell;
         }
     }
