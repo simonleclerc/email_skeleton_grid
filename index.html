@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <title></title>
     <style>
-        *:focus{
+        input:focus,
+        button:focus{
             border: 3px solid #ffffff;
             border-width: 0 3px 0 0;
             outline: none;
@@ -103,6 +104,15 @@
         .cell:hover > .delete {
             opacity: 1;
         }
+
+        #output table,
+        #output table tr td tr,
+        #output table tr td tr td {
+            border: 1px solid #000000;
+        }
+        #output table tr td {
+            height: 50px;
+        }
     </style>
 </head>
 <body>
@@ -110,26 +120,29 @@
 <button class="add_main">Add Main</button>
 <button class="generate">Generate</button>
 <label>Img root <input type="text" id="img_root"/></label>
-<div class="main">
-    <label>W <input type="text"/></label>
-    <button class="add_row">+</button>
-    <button class="delete">x</button>
-    <ul class="sortable"></ul>
+<div id="skeleton">
+    <div class="main">
+        <label>W <input type="text"/></label>
+        <button class="add_row">+</button>
+        <button class="delete">x</button>
+        <ul class="sortable"></ul>
+    </div>
 </div>
 <div id="output"></div>
+<textarea id="output_code"></textarea>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="ui.js"></script>
 <script type="text/javascript">
     $(document).on('click', '.add_row',function(){
-        $(this).parent().find('ul').append('<li class="row sortable"><div class="cell"><label>IMG <input type="text"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div><button class="delete">x</button><button class="add_cell">+</button></li>');
+        $(this).parent().find('ul').append('<li class="row sortable"><div class="cell"><label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div><button class="delete">x</button><button class="add_cell">+</button></li>');
         $( ".sortable" ).sortable();
     });
     $(document).on('click', '.add_cell',function(){
-        $(this).closest('.row').append('<div class="cell"><label>IMG <input type="text"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div>');
+        $(this).closest('.row').append('<div class="cell"><label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div>');
         $( ".sortable" ).sortable();
     });
     $(document).on('click', '.add_main',function(){
-        $('body').append('<div class="main"><label>W <input type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul></ul></div>');
+        $('#skeleton').append('<div class="main"><label>W <input type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul></ul></div>');
     });
     $(document).on('click', '.delete',function(){
         $(this).parent().remove();
@@ -144,20 +157,27 @@
             $(e).find('.row').each(function(j,$row){
                 $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table><tr></tr></table></td></tr>');
                 $($row).find('.cell').each(function(k, $cell){
-                    $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(generator.cell($($cell).find('input[type="text"]').val(), $($cell).find('input[type="checkbox"]')[0].checked ));
+                    $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(
+                            generator.cell(
+                                    $($cell).find('.image_input').val(),
+                                    $($cell).find('.bgc_input').val(),
+                                    $($cell).find('input[type="checkbox"]')[0].checked )
+                    );
                 });
             });
         });
-        $('#output').empty().append($renderedHTML);
+        $('#output_code').val($renderedHTML.html());
+        $('#output').empty().append($renderedHTML.html());
     });
 
     var generator = {
         options: {
             img_root: $('#img_root').val()
         },
-        cell: function(img, text){
+        cell: function(img, bgc, text){
             var cell = $('<td></td>');
             cell.attr('align','left');
+            bgc != '' ? cell.css('background-color', '#'+bgc) : '';
             var link = $('<a></a>');
             link.attr('target', '_BLANK')
                 .attr('href','#newLink')
@@ -187,7 +207,6 @@
                         imgDom.setAttribute('alt', '');
                         imgDom.setAttribute('width', imgDom.width);
                         imgDom.setAttribute('height', imgDom.height);
-                        console.log(imgDom.height, imgDom.width);
                         cell.find('a').append(imgDom);
                     };
                 } else {
