@@ -3,117 +3,7 @@
 <head lang="en">
     <meta charset="UTF-8">
     <title></title>
-    <style>
-        input:focus,
-        button:focus{
-            border: 3px solid #ffffff;
-            border-width: 0 3px 0 0;
-            outline: none;
-        }
-        .main {
-            background: #4C8DA6;
-            width: 1000px;
-            margin: 50px auto;
-            padding: 10px 10px 10px 20px;
-            border-radius: 3px;
-            color: #24434F;
-            font-family: "Consolas", monospace;
-            position: relative;
-        }
-        .main ul {
-            padding: 0;
-            margin: 0;
-        }
-        .row {
-            border-radius: 3px;
-            padding: 10px 45px 10px 20px;
-            margin: 5px;
-            background: #72A6BA;
-            display: flex;
-            position: relative;
-        }
-
-        .cell {
-            position: relative;
-            border-radius: 3px;
-            padding: 10px 10px 10px 20px;
-            background: #ADCDD9;
-            margin: 0 5px;
-            width: 100%;
-        }
-        .add_cell {
-            position: absolute;
-            display: block;
-            height: 100%;
-            width: 35px;
-            right: 0;
-            top: 0;
-            border-radius: 0 3px 3px 0;
-            border: none;
-            color: #50783C;
-            font-weight: bold;
-            font-size: 20px;
-            background: #97d17a;
-            cursor: pointer;
-        }
-        .add_row {
-            display: block;
-            height: 30px;
-            width: 30px;
-            padding: 0;
-            line-height: 100%;
-            margin: 0 auto;
-            border-radius: 50%;
-            border: none;
-            color: #50783C;
-            font-weight: bold;
-            font-size: 20px;
-            background: #97d17a;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-        input {
-            background: rgba(0,0,0,.2);
-            border: none;
-            color: #ffffff;
-            padding: 2px;
-            width: 60px;
-            font-family: "Consolas", monospace;
-        }
-        label{
-            margin-left: 5px;
-            font-family: "Consolas", monospace;
-        }
-        .delete {
-            position: absolute;
-            height: 100%;
-            width: 20px;
-            background: #fa6e69;
-            color: #C73F3A;
-            border: none;
-            top: 0;
-            left: 0;
-            border-radius: 3px 0 0 3px;
-            font-size: 15px;
-            cursor: pointer;
-            opacity: 0;
-        }
-
-        .main:hover > .delete,
-        .row:hover > .delete,
-        .cell:hover > .delete {
-            opacity: 1;
-        }
-
-        #output table,
-        #output table tr td tr,
-        #output table tr td tr td {
-            border: 1px solid #000000;
-        }
-        #output table tr td {
-            height: 50px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/main.css"/>
 </head>
 <body>
 
@@ -130,15 +20,15 @@
 </div>
 <div id="output"></div>
 <textarea id="output_code"></textarea>
-<script type="text/javascript" src="jquery.js"></script>
-<script type="text/javascript" src="ui.js"></script>
+<script type="text/javascript" src="js/jquery.js"></script>
+<script type="text/javascript" src="js/ui.js"></script>
 <script type="text/javascript">
     $(document).on('click', '.add_row',function(){
         $(this).parent().find('ul').append('<li class="row sortable"><div class="cell"><label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div><button class="delete">x</button><button class="add_cell">+</button></li>');
         $( ".sortable" ).sortable();
     });
     $(document).on('click', '.add_cell',function(){
-        $(this).closest('.row').append('<div class="cell"><label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div>');
+        gridGenerator.cell($(this).closest('.row'));
         $( ".sortable" ).sortable();
     });
     $(document).on('click', '.add_main',function(){
@@ -158,10 +48,11 @@
                 $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table><tr></tr></table></td></tr>');
                 $($row).find('.cell').each(function(k, $cell){
                     $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(
-                            generator.cell(
-                                    $($cell).find('.image_input').val(),
-                                    $($cell).find('.bgc_input').val(),
-                                    $($cell).find('input[type="checkbox"]')[0].checked )
+                            tableGenerator.cell({
+                                'img': $($cell).find('.image_input').val(),
+                                'bgc': $($cell).find('.bgc_input').val(),
+                                'txt': $($cell).find('txt_input')[0].checked
+                            })
                     );
                 });
             });
@@ -170,7 +61,64 @@
         $('#output').empty().append($renderedHTML.html());
     });
 
-    var generator = {
+    var gridGenerator = {
+        cell: function($elmParent){
+            var $cell = $('<div class="cell"></div>');
+            $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>')
+            $elmParent.append($cell)
+        }
+    };
+    var addInput = function($elm, type, options){
+        var $input;
+        var $tempContainer = $('<div>');
+        var $label = $('<label></label>');
+        switch(type){
+            case 'text':
+                $input = $('<input/>');
+                $input.attr('type', type);
+                $tempContainer.append($input);
+                break;
+            case 'select':
+                $input = $('<select></select>');
+                for(option in options.optionsElm) {
+                    $input.append('<option value="'+option+'">'+options.optionsElm[option]+'</option>');
+                }
+                $label.append(options.label).append($input);
+                $tempContainer.append($label);
+                break;
+            case 'checkbox':
+            case 'radio':
+                var $fieldset = $('<fieldset></fieldset>');
+                var $legend = $('<legend>'+options.label+'</legend>');
+                $fieldset.append($legend);
+                for(option in options.optionsElm) {
+                    $input = $('<input type="'+type+'" value="'+option+'" name="'+options.name+'" />');
+                    $label.append(options.optionsElm[option]).append($input);
+                    $fieldset.append($label);
+                }
+                $tempContainer.append($fieldset);
+                break;
+        }
+        $elm.append($tempContainer.children());
+    };
+
+    var addOption = function($elm, type){
+        switch(type){
+            case 'align':
+                addInput($elm, 'select', {
+                    label: 'Align',
+                    class: 'align_input',
+                    optionsElm: {
+                        left: 'left',
+                        right: 'right',
+                        center: 'center'
+                    }
+                });
+                break;
+        }
+    };
+
+    var tableGenerator = {
         options: {
             img_root: $('#img_root').val()
         },
@@ -233,7 +181,7 @@
             }
             return cell;
         }
-    }
+    };
     function UrlExists(url)
     {
         var http = new XMLHttpRequest();

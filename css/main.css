@@ -1,0 +1,110 @@
+
+input:focus,
+button:focus{
+    border: 3px solid #ffffff;
+    border-width: 0 3px 0 0;
+    outline: none;
+}
+.main {
+    background: #4C8DA6;
+    width: 1000px;
+    margin: 50px auto;
+    padding: 10px 10px 10px 20px;
+    border-radius: 3px;
+    color: #24434F;
+    font-family: "Consolas", monospace;
+    position: relative;
+}
+.main ul {
+    padding: 0;
+    margin: 0;
+}
+.row {
+    border-radius: 3px;
+    padding: 10px 45px 10px 20px;
+    margin: 5px;
+    background: #72A6BA;
+    display: flex;
+    position: relative;
+}
+
+.cell {
+    position: relative;
+    border-radius: 3px;
+    padding: 10px 10px 10px 20px;
+    background: #ADCDD9;
+    margin: 0 5px;
+    width: 100%;
+}
+.add_cell {
+    position: absolute;
+    display: block;
+    height: 100%;
+    width: 35px;
+    right: 0;
+    top: 0;
+    border-radius: 0 3px 3px 0;
+    border: none;
+    color: #50783C;
+    font-weight: bold;
+    font-size: 20px;
+    background: #97d17a;
+    cursor: pointer;
+}
+.add_row {
+    display: block;
+    height: 30px;
+    width: 30px;
+    padding: 0;
+    line-height: 100%;
+    margin: 0 auto;
+    border-radius: 50%;
+    border: none;
+    color: #50783C;
+    font-weight: bold;
+    font-size: 20px;
+    background: #97d17a;
+    cursor: pointer;
+    margin-bottom: 10px;
+}
+input {
+    background: rgba(0,0,0,.2);
+    border: none;
+    color: #ffffff;
+    padding: 2px;
+    width: 60px;
+    font-family: "Consolas", monospace;
+}
+label{
+    margin-left: 5px;
+    font-family: "Consolas", monospace;
+}
+.delete {
+    position: absolute;
+    height: 100%;
+    width: 20px;
+    background: #fa6e69;
+    color: #C73F3A;
+    border: none;
+    top: 0;
+    left: 0;
+    border-radius: 3px 0 0 3px;
+    font-size: 15px;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.main:hover > .delete,
+.row:hover > .delete,
+.cell:hover > .delete {
+    opacity: 1;
+}
+
+#output table,
+#output table tr td tr,
+#output table tr td tr td {
+    border: 1px solid #000000;
+}
+#output table tr td {
+    height: 50px;
+}
