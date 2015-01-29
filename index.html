@@ -9,14 +9,8 @@
 
 <button class="add_main">Add Main</button>
 <button class="generate">Generate</button>
-<label>Img root <input type="text" id="img_root"/></label>
+<label>Img root <input type="text" id="img_root" style="width: 500px;"/></label>
 <div id="skeleton">
-    <div class="main">
-        <label>W <input type="text"/></label>
-        <button class="add_row">+</button>
-        <button class="delete">x</button>
-        <ul class="sortable"></ul>
-    </div>
 </div>
 <div id="output"></div>
 <textarea id="output_code"></textarea>
@@ -24,15 +18,13 @@
 <script type="text/javascript" src="js/ui.js"></script>
 <script type="text/javascript">
     $(document).on('click', '.add_row',function(){
-        $(this).parent().find('ul').append('<li class="row sortable"><div class="cell"><label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox"/></label><button class="delete">x</button></div><button class="delete">x</button><button class="add_cell">+</button></li>');
-        $( ".sortable" ).sortable();
+        gridGenerator.row($(this).closest('.main').children('ul'));
     });
     $(document).on('click', '.add_cell',function(){
         gridGenerator.cell($(this).closest('.row'));
-        $( ".sortable" ).sortable();
     });
     $(document).on('click', '.add_main',function(){
-        $('#skeleton').append('<div class="main"><label>W <input type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul></ul></div>');
+        gridGenerator.main();
     });
     $(document).on('click', '.delete',function(){
         $(this).parent().remove();
@@ -57,16 +49,31 @@
                 });
             });
         });
-        $('#output_code').val($renderedHTML.html());
-        $('#output').empty().append($renderedHTML.html());
+        setTimeout(function(){
+            $('#output_code').val($renderedHTML.html());
+            $('#output').empty().append($renderedHTML.html());
+        },3000);
     });
 
     var gridGenerator = {
         cell: function($elmParent){
             var $cell = $('<div class="cell"></div>');
-            $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>')
-            $elmParent.append($cell)
+            $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>');
+            $elmParent.append($cell);
+            $( ".sortable" ).sortable();
+        },
+        row: function($elmParent){
+            var $row = $('<li class="row sortable"><button class="delete">x</button><button class="add_cell">+</button></li></li>');
+            this.cell($row);
+            $elmParent.append($row);
+            $( ".sortable" ).sortable();
+        },
+        main: function(){
+            var $main = $('<div class="main"><label>W <input type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul class="row_list"></ul></div>')
+            this.row($main.find('.row_list'));
+            $('#skeleton').append($main);
         }
+
     };
     var addInput = function($elm, type, options){
         var $input;
@@ -150,13 +157,21 @@
 
             if(!text && img !== ''){
                 if (UrlExists(workedImg + '.jpg')){
-                    imgDom.src = workedImg + '.jpg';
                     imgDom.onload = function(){
                         imgDom.setAttribute('alt', '');
                         imgDom.setAttribute('width', imgDom.width);
                         imgDom.setAttribute('height', imgDom.height);
                         cell.find('a').append(imgDom);
                     };
+                    imgDom.src = workedImg + '.jpg';
+                } else if(UrlExists(workedImg + '.gif')){
+                    imgDom.onload = function(){
+                        imgDom.setAttribute('alt', '');
+                        imgDom.setAttribute('width', imgDom.width);
+                        imgDom.setAttribute('height', imgDom.height);
+                        cell.find('a').append(imgDom);
+                    };
+                    imgDom.src = workedImg + '.gif';
                 } else {
                     imgDom.onload = function(){
                         imgDom.setAttribute('alt', '');
@@ -189,6 +204,8 @@
         http.send();
         return http.status!=404;
     }
+
+    gridGenerator.main();
 
 </script>
 </body>
