@@ -6,7 +6,12 @@
     <link rel="stylesheet" href="css/main.css"/>
 </head>
 <body>
-
+<div id="contextMenu">
+    <ul>
+        <li class=".addOptionTableInclude" addOption="table_include">Include table</li>
+        <li class=".addOptionAlign" addOption="align">Align</li>
+    </ul>
+</div>
 <button class="add_main">Add Main</button>
 <button class="generate">Generate</button>
 <label>Img root <input type="text" id="img_root" style="width: 500px;"/></label>
@@ -31,24 +36,27 @@
     });
     $( ".sortable" ).sortable();
 
-
+    var $renderedHTML;
     $('.generate').on('click', function(){
-        var $renderedHTML = $('<div></div>');
+        $renderedHTML = $('<div></div>');
         $('body .main').each(function(i, e){
-            $renderedHTML.append('<table id="table'+i+'"></table>');
+            var mainWidth = ($(e).find('.main_width').val() + '') || '650';
+            $renderedHTML.append('<table width="'+mainWidth+'" id="table'+i+'" border="0" cellpadding="0" cellspacing="0" align="center" style="border-collapse: collapse;"></table>');
             $(e).find('.row').each(function(j,$row){
-                $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table><tr></tr></table></td></tr>');
+                $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="border-collapse: collapse;"><tr></tr></table></td></tr>');
                 $($row).find('.cell').each(function(k, $cell){
                     $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(
                             tableGenerator.cell({
                                 'img': $($cell).find('.image_input').val(),
                                 'bgc': $($cell).find('.bgc_input').val(),
-                                'txt': $($cell).find('txt_input')[0].checked
+                                'txt': $($cell).find('.txt_input')[0].checked,
+                                'table_include': $($cell).find('.table_include').val()
                             })
                     );
                 });
             });
         });
+        $(document).trigger('construct.finish');
         setTimeout(function(){
             $('#output_code').val($renderedHTML.html());
             $('#output').empty().append($renderedHTML.html());
@@ -59,6 +67,7 @@
         cell: function($elmParent){
             var $cell = $('<div class="cell"></div>');
             $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>');
+            //addOption($cell, 'table_include');
             $elmParent.append($cell);
             $( ".sortable" ).sortable();
         },
@@ -69,7 +78,7 @@
             $( ".sortable" ).sortable();
         },
         main: function(){
-            var $main = $('<div class="main"><label>W <input type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul class="row_list"></ul></div>')
+            var $main = $('<div class="main"><label>W <input class="main_width" type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul class="row_list sortable"></ul></div>')
             this.row($main.find('.row_list'));
             $('#skeleton').append($main);
         }
@@ -83,13 +92,16 @@
             case 'text':
                 $input = $('<input/>');
                 $input.attr('type', type);
-                $tempContainer.append($input);
+                $input.addClass(options.class);
+                $label.append(options.label).append($input);
+                $tempContainer.append($label);
                 break;
             case 'select':
                 $input = $('<select></select>');
                 for(option in options.optionsElm) {
                     $input.append('<option value="'+option+'">'+options.optionsElm[option]+'</option>');
                 }
+                $input.addClass(options.class);
                 $label.append(options.label).append($input);
                 $tempContainer.append($label);
                 break;
@@ -103,6 +115,7 @@
                     $label.append(options.optionsElm[option]).append($input);
                     $fieldset.append($label);
                 }
+                $input.addClass(options.class);
                 $tempContainer.append($fieldset);
                 break;
         }
@@ -114,12 +127,18 @@
             case 'align':
                 addInput($elm, 'select', {
                     label: 'Align',
-                    class: 'align_input',
+                    class: 'align',
                     optionsElm: {
                         left: 'left',
                         right: 'right',
                         center: 'center'
                     }
+                });
+                break;
+            case 'table_include':
+                addInput($elm, 'text', {
+                    label: 'Include ',
+                    class: 'table_include'
                 });
                 break;
         }
@@ -129,69 +148,107 @@
         options: {
             img_root: $('#img_root').val()
         },
-        cell: function(img, bgc, text){
+        cell: function(options){
+            var img = options.img;
+            var bgc = options.bgc;
+            var text = options.txt;
+            var table_include = options.table_include;
             var cell = $('<td></td>');
             cell.attr('align','left');
             bgc != '' ? cell.css('background-color', '#'+bgc) : '';
-            var link = $('<a></a>');
-            link.attr('target', '_BLANK')
-                .attr('href','#newLink')
-                .css({
-                        fontFamily: 'Helvetica, Arial, sans-serif',
-                        fontSize: '14px',
-                        lineHeight: '16px',
-                        textDecoration: 'none',
-                        fontWeight: 'normal',
-                        color: '#010101'
-                    });
 
-            cell.append(link);
+            if(table_include !== '') {
+                $(document).on('construct.finish', function(){
+                    console.log(cell[0], 'toto');
+                    console.log($renderedHTML);
+                    console.log($renderedHTML.find('#table'+table_include));
+                    cell.append($renderedHTML.find('#table'+table_include));
+                });
+            }else{
 
-            var workedImg;
-            if(img !== ''){
-                var root = $('#img_root').val();
-                workedImg = root + img;
-                workedImg = workedImg.substr(workedImg.lastIndexOf('/') + 1);
-                var imgDom = new Image();
-            }
+                var link = $('<a></a>');
+                link.attr('target', '_BLANK')
+                        .attr('href', '#newLink')
+                        .css({
+                            fontFamily: 'Helvetica, Arial, sans-serif',
+                            fontSize: '14px',
+                            lineHeight: '16px',
+                            textDecoration: 'none',
+                            fontWeight: 'normal',
+                            color: '#010101'
+                        });
 
-            if(!text && img !== ''){
-                if (UrlExists(workedImg + '.jpg')){
-                    imgDom.onload = function(){
-                        imgDom.setAttribute('alt', '');
-                        imgDom.setAttribute('width', imgDom.width);
-                        imgDom.setAttribute('height', imgDom.height);
-                        cell.find('a').append(imgDom);
-                    };
-                    imgDom.src = workedImg + '.jpg';
-                } else if(UrlExists(workedImg + '.gif')){
-                    imgDom.onload = function(){
-                        imgDom.setAttribute('alt', '');
-                        imgDom.setAttribute('width', imgDom.width);
-                        imgDom.setAttribute('height', imgDom.height);
-                        cell.find('a').append(imgDom);
-                    };
-                    imgDom.src = workedImg + '.gif';
-                } else {
-                    imgDom.onload = function(){
-                        imgDom.setAttribute('alt', '');
-                        imgDom.setAttribute('width', imgDom.width);
-                        imgDom.setAttribute('height', imgDom.height);
-                        cell.find('a').append(imgDom);
-                    };
-                    imgDom.src = workedImg + '.png';
+                cell.append(link);
+
+                var workedImg;
+                if (img !== '') {
+                    console.log(img)
+                    var root = $('#img_root').val();
+                    workedImg = root + img;
+                    console.log(workedImg)
+                    workedImg = workedImg.substr(workedImg.lastIndexOf('/') + 1);
+                    var imgDom = new Image();
                 }
-            }else if(text && img !== ''){
-                if (UrlExists(workedImg + '.jpg')){
-                    imgDom.onload = function(){
-                        cell.attr('width', imgDom.width);
-                    };
-                    imgDom.src = workedImg + '.jpg';
-                } else {
-                    imgDom.onload = function(){
-                        cell.attr('width', imgDom.height);
-                    };
-                    imgDom.src = workedImg + '.png';
+
+                if (!text && img !== '') {
+                    console.log(workedImg)
+                    if (UrlExists(workedImg + '.jpg')) {
+                        imgDom.onload = function () {
+                            imgDom.setAttribute('alt', '');
+                            imgDom.setAttribute('width', imgDom.width);
+                            imgDom.setAttribute('height', imgDom.height);
+                            imgDom.style.display = 'block';
+                            if (imgDom.height < 20) {
+                                cell.attr('height', imgDom.height);
+                                cell.css('line-height', imgDom.height + 'px');
+                            }
+                            cell.find('a').append(imgDom);
+                        };
+                        imgDom.src = workedImg + '.jpg';
+                    } else if (UrlExists(workedImg + '.gif')) {
+                        imgDom.onload = function () {
+                            imgDom.setAttribute('alt', '');
+                            imgDom.setAttribute('width', imgDom.width);
+                            imgDom.setAttribute('height', imgDom.height);
+                            imgDom.style.display = 'block';
+                            if (imgDom.height < 20) {
+                                cell.setAttribute('height', imgDom.height);
+                                cell.style.lineHeight = imgDom.height + 'px';
+                            }
+                            cell.find('a').append(imgDom);
+                        };
+                        imgDom.src = workedImg + '.gif';
+                    } else {
+                        imgDom.onload = function () {
+                            imgDom.setAttribute('alt', '');
+                            imgDom.setAttribute('width', imgDom.width);
+                            imgDom.setAttribute('height', imgDom.height);
+                            imgDom.style.display = 'block';
+                            if (imgDom.height < 20) {
+                                cell.setAttribute('height', imgDom.height);
+                                cell.style.lineHeight = imgDom.height + 'px';
+                            }
+                            cell.find('a').append(imgDom);
+                        };
+                        imgDom.src = workedImg + '.png';
+                    }
+                } else if (text && img !== '') {
+                    if (UrlExists(workedImg + '.jpg')) {
+                        imgDom.onload = function () {
+                            cell.attr('width', imgDom.width);
+                        };
+                        imgDom.src = workedImg + '.jpg';
+                    } else if (UrlExists(workedImg + '.gif')) {
+                        imgDom.onload = function () {
+                            cell.attr('width', imgDom.width);
+                        };
+                        imgDom.src = workedImg + '.gif';
+                    } else {
+                        imgDom.onload = function () {
+                            cell.attr('width', imgDom.height);
+                        };
+                        imgDom.src = workedImg + '.png';
+                    }
                 }
             }
             return cell;
@@ -199,6 +256,7 @@
     };
     function UrlExists(url)
     {
+        console.log(url);
         var http = new XMLHttpRequest();
         http.open('HEAD', url, false);
         http.send();
@@ -206,6 +264,32 @@
     }
 
     gridGenerator.main();
+
+
+    $(document).on('contextmenu','.cell', function(e){
+        var mouse = {};
+        var cellTargeted = e.target;
+        mouse.x = e.clientX || e.pageX;
+        mouse.y = e.clientY || e.pageY
+        $('#contextMenu')
+            .css({left: mouse.x, top: mouse.y})
+            .show();
+
+        $('#contextMenu').on('click.addOption', function(e){
+            if($(cellTargeted).find('.'+e.target.getAttribute('addOption')).length === 0){
+                addOption($(cellTargeted), e.target.getAttribute('addOption'));
+            }
+        });
+
+        $(document).on('click.removeContextMenu', function(){
+            $('#contextMenu').hide();
+            $('#contextMenu').off('click.addOption');
+            $(document).off('click.removeContextMenu');
+        });
+
+        return false;
+    });
+
 
 </script>
 </body>
