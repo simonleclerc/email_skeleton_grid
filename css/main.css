@@ -1,4 +1,6 @@
-
+html {
+    font-family: "Consolas", monospace;
+}
 input:focus,
 button:focus{
     border: 3px solid #ffffff;
@@ -12,7 +14,6 @@ button:focus{
     padding: 10px 10px 10px 20px;
     border-radius: 3px;
     color: #24434F;
-    font-family: "Consolas", monospace;
     position: relative;
 }
 .main ul {
@@ -114,8 +115,58 @@ label{
     top: 0;
     left: 0;
     z-index: 999;
-    width: 50px;
-    height: 50px;
     background-color: red;
     display: none;
+}
+
+.listMenu {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+}
+.listMenu + .listMenu {
+    border-top: 1px solid #50783C;
+}
+.itemMenu {
+    padding: 2px 19px 2px 15px;
+    background: #97d17a;
+    color: #50783C;
+    cursor: pointer;
+    transition: all .1s ease-out;
+    position: relative;
+    white-space: nowrap;
+}
+.itemMenu:hover{
+    padding: 2px 12px 2px 22px;
+    background: #50783C;
+    color: #97d17a;
+    cursor: pointer;
+}
+.listMenu .listMenu {
+    display: none;
+}
+
+.itemMenu:hover > .listMenu{
+    display: block;
+    position: absolute;
+    left: 100%;
+    top: 0;
+}
+.listMenuMore:after {
+    display: block;
+    position: absolute;
+    right: 5px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
+    height: 0;
+    width: 0;
+    z-index: 1000;
+    content: '';
+    border-width: 3px 0 3px 5px;
+    border-color: transparent transparent transparent #50783C;
+    border-style: inset inset inset solid;
+}
+.itemMenu:hover:after {
+    border-color: transparent transparent transparent #97d17a;
 }

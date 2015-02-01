@@ -7,9 +7,22 @@
 </head>
 <body>
 <div id="contextMenu">
-    <ul>
-        <li class=".addOptionTableInclude" addOption="table_include">Include table</li>
-        <li class=".addOptionAlign" addOption="align">Align</li>
+    <ul class="listMenu">
+        <li class="addOptionTableInclude itemMenu" addOption="table_include">Include table</li>
+        <li class="addOptionAlign itemMenu" addOption="align">Align</li>
+    </ul>
+    <ul class="listMenu">
+        <li class="itemMenu listMenuMore">Inject code
+            <ul class="listMenu">
+                <li class="itemMenu">Code 1</li>
+                <li class="itemMenu listMenuMore">Code 2
+                    <ul class="listMenu">
+                        <li class="itemMenu">Code 1</li>
+                        <li class="itemMenu">Code 2</li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
     </ul>
 </div>
 <button class="add_main">Add Main</button>
