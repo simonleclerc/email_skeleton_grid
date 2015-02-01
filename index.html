@@ -120,25 +120,39 @@
                 break;
             case 'checkbox':
             case 'radio':
-                var $fieldset = $('<fieldset></fieldset>');
-                var $legend = $('<legend>'+options.label+'</legend>');
-                $fieldset.append($legend);
-                for(option in options.optionsElm) {
-                    $input = $('<input type="'+type+'" value="'+option+'" name="'+options.name+'" />');
-                    $label.append(options.optionsElm[option]).append($input);
-                    $fieldset.append($label);
+                if(type == 'checkbox' && !options.optionsElm){
+                    $input = $('<input/>');
+                    $input.attr('type', type);
+                    $input.addClass(options.class);
+                    $label.append(options.label).append($input);
+                    $tempContainer.append($label);
+                } else {
+                    var $fieldset = $('<fieldset></fieldset>');
+                    var $legend = $('<legend>'+options.label+'</legend>');
+                    $fieldset.append($legend);
+                    for(option in options.optionsElm) {
+                        $input = $('<input type="'+type+'" value="'+option+'" name="'+options.name+'" />');
+                        $input.addClass(options.class);
+                        $label.append(options.optionsElm[option]).append($input);
+                        $fieldset.append($label);
+                    }
+                    $tempContainer.append($fieldset);
                 }
-                $input.addClass(options.class);
-                $tempContainer.append($fieldset);
                 break;
         }
+        options.beforeAppendCallback($tempContainer.children());
+
         $elm.append($tempContainer.children());
     };
 
+    function addOptionCallback($addedElm){
+        $($addedElm).addClass('option');
+    }
     var addOption = function($elm, type){
         switch(type){
             case 'align':
                 addInput($elm, 'select', {
+                    beforeAppendCallback: addOptionCallback,
                     label: 'Align',
                     class: 'align',
                     optionsElm: {
@@ -150,11 +164,16 @@
                 break;
             case 'table_include':
                 addInput($elm, 'text', {
+                    beforeAppendCallback: addOptionCallback,
                     label: 'Include ',
                     class: 'table_include'
                 });
                 break;
         }
+        $('.'+type).closest('.option').attr('option', type);
+    };
+    var removeOption = function($elm, type){
+        $elm.find('.'+type).closest('.option').remove();
     };
 
     var tableGenerator = {
@@ -288,14 +307,23 @@
             .css({left: mouse.x, top: mouse.y})
             .show();
 
+        var cellOptions = [];
+
+        $(e.target).find('.option').each(function(){
+            $('[addoption="'+$(this).attr('option')+'"]').addClass('alreadyPresent');
+        });
+
         $('#contextMenu').on('click.addOption', function(e){
             if($(cellTargeted).find('.'+e.target.getAttribute('addOption')).length === 0){
                 addOption($(cellTargeted), e.target.getAttribute('addOption'));
+            }else{
+                removeOption($(cellTargeted), e.target.getAttribute('addOption'));
             }
         });
 
         $(document).on('click.removeContextMenu', function(){
             $('#contextMenu').hide();
+            $('.alreadyPresent').removeClass('alreadyPresent');
             $('#contextMenu').off('click.addOption');
             $(document).off('click.removeContextMenu');
         });

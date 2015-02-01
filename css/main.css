@@ -170,3 +170,13 @@ label{
 .itemMenu:hover:after {
     border-color: transparent transparent transparent #97d17a;
 }
+.alreadyPresent:before {
+    content: 'x';
+    position: absolute;
+    left: 5px;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
+    display: block;
+
+}
