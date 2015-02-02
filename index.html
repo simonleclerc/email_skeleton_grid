@@ -50,7 +50,9 @@
     $( ".sortable" ).sortable();
 
     var $renderedHTML;
-    $('.generate').on('click', function(){
+    $(document).on('click','.generate', function(){
+        $('#output').empty();
+        $('#output_code').val('');
         $renderedHTML = $('<div></div>');
         $('body .main').each(function(i, e){
             var mainWidth = ($(e).find('.main_width').val() + '') || '650';
@@ -73,6 +75,7 @@
         setTimeout(function(){
             $('#output_code').val($renderedHTML.html());
             $('#output').empty().append($renderedHTML.html());
+            //$renderedHTML = undefined;
         },3000);
     });
 
@@ -80,7 +83,6 @@
         cell: function($elmParent){
             var $cell = $('<div class="cell"></div>');
             $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>');
-            //addOption($cell, 'table_include');
             $elmParent.append($cell);
             $( ".sortable" ).sortable();
         },
@@ -189,15 +191,7 @@
             cell.attr('align','left');
             bgc != '' ? cell.css('background-color', '#'+bgc) : '';
 
-            if(table_include !== '') {
-                $(document).on('construct.finish', function(){
-                    console.log(cell[0], 'toto');
-                    console.log($renderedHTML);
-                    console.log($renderedHTML.find('#table'+table_include));
-                    cell.append($renderedHTML.find('#table'+table_include));
-                });
-            }else{
-
+            if(table_include === '' || table_include === undefined ) {
                 var link = $('<a></a>');
                 link.attr('target', '_BLANK')
                         .attr('href', '#newLink')
@@ -214,16 +208,13 @@
 
                 var workedImg;
                 if (img !== '') {
-                    console.log(img)
                     var root = $('#img_root').val();
                     workedImg = root + img;
-                    console.log(workedImg)
                     workedImg = workedImg.substr(workedImg.lastIndexOf('/') + 1);
                     var imgDom = new Image();
                 }
 
                 if (!text && img !== '') {
-                    console.log(workedImg)
                     if (UrlExists(workedImg + '.jpg')) {
                         imgDom.onload = function () {
                             imgDom.setAttribute('alt', '');
@@ -244,8 +235,8 @@
                             imgDom.setAttribute('height', imgDom.height);
                             imgDom.style.display = 'block';
                             if (imgDom.height < 20) {
-                                cell.setAttribute('height', imgDom.height);
-                                cell.style.lineHeight = imgDom.height + 'px';
+                                cell.attr('height', imgDom.height);
+                                cell.css('line-height', imgDom.height + 'px');
                             }
                             cell.find('a').append(imgDom);
                         };
@@ -257,8 +248,8 @@
                             imgDom.setAttribute('height', imgDom.height);
                             imgDom.style.display = 'block';
                             if (imgDom.height < 20) {
-                                cell.setAttribute('height', imgDom.height);
-                                cell.style.lineHeight = imgDom.height + 'px';
+                                cell.attr('height', imgDom.height);
+                                cell.css('line-height', imgDom.height + 'px');
                             }
                             cell.find('a').append(imgDom);
                         };
@@ -282,13 +273,18 @@
                         imgDom.src = workedImg + '.png';
                     }
                 }
+
+            } else {
+                $(document).on('construct.finish', function(){
+                    cell.append($renderedHTML.find('#table'+table_include));
+                    $(document).off('construct.finish');
+                });
             }
             return cell;
         }
     };
     function UrlExists(url)
     {
-        console.log(url);
         var http = new XMLHttpRequest();
         http.open('HEAD', url, false);
         http.send();
@@ -304,7 +300,7 @@
         mouse.x = e.clientX || e.pageX;
         mouse.y = e.clientY || e.pageY
         $('#contextMenu')
-            .css({left: mouse.x, top: mouse.y})
+            .css({left: mouse.x, top: (mouse.y + document.body.scrollTop)})
             .show();
 
         var cellOptions = [];
