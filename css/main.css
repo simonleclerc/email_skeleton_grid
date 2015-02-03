@@ -180,3 +180,10 @@ label{
     display: block;
 
 }
+
+#skeleton .main:before {
+    content: attr(table_ID);
+    position: absolute;
+    right: 1%;
+    text-shadow: 1px 1px 0px rgba(255,255,255,0.3);
+}

@@ -10,6 +10,7 @@
     <ul class="listMenu">
         <li class="addOptionTableInclude itemMenu" addOption="table_include">Include table</li>
         <li class="addOptionAlign itemMenu" addOption="align">Align</li>
+        <li class="addOptionAlt itemMenu" addOption="alt">Alt</li>
     </ul>
     <ul class="listMenu">
         <li class="itemMenu listMenuMore">Inject code
@@ -65,7 +66,8 @@
                                 'img': $($cell).find('.image_input').val(),
                                 'bgc': $($cell).find('.bgc_input').val(),
                                 'txt': $($cell).find('.txt_input')[0].checked,
-                                'table_include': $($cell).find('.table_include').val()
+                                'table_include': $($cell).find('.table_include').val(),
+                                'alt': $($cell).find('.alt_input').val()
                             })
                     );
                 });
@@ -85,17 +87,20 @@
             $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>');
             $elmParent.append($cell);
             $( ".sortable" ).sortable();
+            $(document).trigger('grid.refresh');
         },
         row: function($elmParent){
             var $row = $('<li class="row sortable"><button class="delete">x</button><button class="add_cell">+</button></li></li>');
             this.cell($row);
             $elmParent.append($row);
             $( ".sortable" ).sortable();
+            $(document).trigger('grid.refresh');
         },
         main: function(){
             var $main = $('<div class="main"><label>W <input class="main_width" type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul class="row_list sortable"></ul></div>')
             this.row($main.find('.row_list'));
             $('#skeleton').append($main);
+            $(document).trigger('grid.refresh');
         }
 
     };
@@ -171,6 +176,13 @@
                     class: 'table_include'
                 });
                 break;
+            case 'alt':
+                addInput($elm, 'text', {
+                    beforeAppendCallback: addOptionCallback,
+                    label: 'Alt ',
+                    class: 'alt_input'
+                });
+                break;
         }
         $('.'+type).closest('.option').attr('option', type);
     };
@@ -187,6 +199,7 @@
             var bgc = options.bgc;
             var text = options.txt;
             var table_include = options.table_include;
+            var alt = options.alt;
             var cell = $('<td></td>');
             cell.attr('align','left');
             bgc != '' ? cell.css('background-color', '#'+bgc) : '';
@@ -225,6 +238,9 @@
                                 cell.attr('height', imgDom.height);
                                 cell.css('line-height', imgDom.height + 'px');
                             }
+                            if(alt !== '' && alt !== undefined ) {
+                                imgDom.setAttribute('alt', alt);
+                            }
                             cell.find('a').append(imgDom);
                         };
                         imgDom.src = workedImg + '.jpg';
@@ -238,6 +254,9 @@
                                 cell.attr('height', imgDom.height);
                                 cell.css('line-height', imgDom.height + 'px');
                             }
+                            if(alt !== '' && alt !== undefined ) {
+                                imgDom.setAttribute('alt', alt);
+                            }
                             cell.find('a').append(imgDom);
                         };
                         imgDom.src = workedImg + '.gif';
@@ -250,6 +269,9 @@
                             if (imgDom.height < 20) {
                                 cell.attr('height', imgDom.height);
                                 cell.css('line-height', imgDom.height + 'px');
+                            }
+                            if(alt !== '' && alt !== undefined ) {
+                                imgDom.setAttribute('alt', alt);
                             }
                             cell.find('a').append(imgDom);
                         };
@@ -327,6 +349,11 @@
         return false;
     });
 
+    $(document).on('grid.refresh', function(){
+        $('#skeleton .main').each(function(i, elm){
+            $(elm).attr('table_ID', 'ID : '+i);
+        });
+    });
 
 </script>
 </body>
