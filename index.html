@@ -11,6 +11,9 @@
         <li class="addOptionTableInclude itemMenu" addOption="table_include">Include table</li>
         <li class="addOptionAlign itemMenu" addOption="align">Align</li>
         <li class="addOptionAlt itemMenu" addOption="alt">Alt</li>
+        <li class="addOptionText itemMenu" addOption="text">Text</li>
+        <li class="addOptionImg itemMenu" addOption="img">Img</li>
+        <li class="addOptionBgc itemMenu" addOption="bgc">Bgc</li>
     </ul>
     <ul class="listMenu">
         <li class="itemMenu listMenuMore">Inject code
@@ -62,13 +65,7 @@
                 $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="border-collapse: collapse;"><tr></tr></table></td></tr>');
                 $($row).find('.cell').each(function(k, $cell){
                     $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(
-                            tableGenerator.cell({
-                                'img': $($cell).find('.image_input').val(),
-                                'bgc': $($cell).find('.bgc_input').val(),
-                                'txt': $($cell).find('.txt_input')[0].checked,
-                                'table_include': $($cell).find('.table_include').val(),
-                                'alt': $($cell).find('.alt_input').val()
-                            })
+                            tableGenerator.cell(getOptions($($cell)))
                     );
                 });
             });
@@ -84,7 +81,10 @@
     var gridGenerator = {
         cell: function($elmParent){
             var $cell = $('<div class="cell"></div>');
-            $cell.append('<label>IMG <input type="text" class="image_input"/></label>&nbsp;<label>BGC <input type="text" class="bgc_input"/></label><br/><label>Text <input type="checkbox" class="txt_input"/></label><button class="delete">x</button>');
+            $cell.append('<button class="delete">x</button>');
+            addOption($cell, 'text');
+            addOption($cell, 'img');
+            addOption($cell, 'bgc');
             $elmParent.append($cell);
             $( ".sortable" ).sortable();
             $(document).trigger('grid.refresh');
@@ -131,6 +131,7 @@
                     $input = $('<input/>');
                     $input.attr('type', type);
                     $input.addClass(options.class);
+                    $input.attr('value', options.value);
                     $label.append(options.label).append($input);
                     $tempContainer.append($label);
                 } else {
@@ -161,7 +162,7 @@
                 addInput($elm, 'select', {
                     beforeAppendCallback: addOptionCallback,
                     label: 'Align',
-                    class: 'align',
+                    class: type,
                     optionsElm: {
                         left: 'left',
                         right: 'right',
@@ -173,23 +174,97 @@
                 addInput($elm, 'text', {
                     beforeAppendCallback: addOptionCallback,
                     label: 'Include ',
-                    class: 'table_include'
+                    class: type
                 });
                 break;
             case 'alt':
                 addInput($elm, 'text', {
                     beforeAppendCallback: addOptionCallback,
                     label: 'Alt ',
-                    class: 'alt_input'
+                    class: type
+                });
+                break;
+            case 'img':
+                addInput($elm, 'text', {
+                    beforeAppendCallback: addOptionCallback,
+                    label: 'Img ',
+                    class: type
+                });
+                break;
+            case 'bgc':
+                addInput($elm, 'text', {
+                    beforeAppendCallback: addOptionCallback,
+                    label: 'Bgc ',
+                    class: type
+                });
+                break;
+            case 'text':
+                addInput($elm, 'checkbox', {
+                    beforeAppendCallback: addOptionCallback,
+                    label: 'Text ',
+                    class: type,
+                    value: 'true'
                 });
                 break;
         }
-        $('.'+type).closest('.option').attr('option', type);
+        $elm.find('.'+type).closest('.option').attr('option', type);
+
+
     };
     var removeOption = function($elm, type){
         $elm.find('.'+type).closest('.option').remove();
     };
 
+    var getOptions = function($cell){
+        var options = {}
+        $cell.find('.option').each(function(i, elm){
+            if($(elm).find('input')){
+                if($(elm).find('input[type="text"]').length > 0){
+                    options[$(elm).attr('option')] = $(elm).find('input').val();
+                } else if($(elm).find('input[type="checkbox"]').length > 1){
+                    console.log('tata   ');
+                    var tempArray = [];
+                    $(elm).find('input[type="checkbox"]').each(function(j, celm){
+                        if($(celm).is(':checked')){
+                            tempArray.push($(celm).val());
+                        }
+                    });
+                    options[$(elm).attr('option')] = tempArray;
+                } else if($(elm).find('input[type="checkbox"]').length == 1 && $(elm).find('input[type="checkbox"]').is(':checked')){
+                    console.log('toto');
+                    options[$(elm).attr('option')] = $(elm).find('input[type="checkbox"]').val();
+                } else if ($(elm).find('select').length > 0){
+                    options[$(elm).attr('option')] = $(elm).find('select').val();
+                } else if ($(elm).find('input[type="radio"]').length > 0){
+                    $(elm).find('input[type="radio"]').each(function(j, celm){
+                        if($(celm).is(':checked')){
+                            tempArray.push($(celm).val());
+                        }
+                    });
+                    options[$(elm).attr('option')] = $(elm).find('select').val();
+                }
+            }
+        })
+        return options
+    }
+
+    var createImage = function(imgDom, extension, alt, workedImg, cell){
+        imgDom.onload = function () {
+            imgDom.setAttribute('alt', '');
+            imgDom.setAttribute('width', imgDom.width);
+            imgDom.setAttribute('height', imgDom.height);
+            imgDom.style.display = 'block';
+            if (imgDom.height < 20) {
+                cell.attr('height', imgDom.height);
+                cell.css('line-height', imgDom.height + 'px');
+            }
+            if(alt !== '' && alt !== undefined ) {
+                imgDom.setAttribute('alt', alt);
+            }
+            cell.find('a').append(imgDom);
+        };
+        imgDom.src = workedImg + '.'+extension;
+    }
     var tableGenerator = {
         options: {
             img_root: $('#img_root').val()
@@ -197,7 +272,7 @@
         cell: function(options){
             var img = options.img;
             var bgc = options.bgc;
-            var text = options.txt;
+            var text = options.text;
             var table_include = options.table_include;
             var alt = options.alt;
             var cell = $('<td></td>');
@@ -229,53 +304,11 @@
 
                 if (!text && img !== '') {
                     if (UrlExists(workedImg + '.jpg')) {
-                        imgDom.onload = function () {
-                            imgDom.setAttribute('alt', '');
-                            imgDom.setAttribute('width', imgDom.width);
-                            imgDom.setAttribute('height', imgDom.height);
-                            imgDom.style.display = 'block';
-                            if (imgDom.height < 20) {
-                                cell.attr('height', imgDom.height);
-                                cell.css('line-height', imgDom.height + 'px');
-                            }
-                            if(alt !== '' && alt !== undefined ) {
-                                imgDom.setAttribute('alt', alt);
-                            }
-                            cell.find('a').append(imgDom);
-                        };
-                        imgDom.src = workedImg + '.jpg';
+                        createImage(imgDom, 'jpg', alt, workedImg, cell);
                     } else if (UrlExists(workedImg + '.gif')) {
-                        imgDom.onload = function () {
-                            imgDom.setAttribute('alt', '');
-                            imgDom.setAttribute('width', imgDom.width);
-                            imgDom.setAttribute('height', imgDom.height);
-                            imgDom.style.display = 'block';
-                            if (imgDom.height < 20) {
-                                cell.attr('height', imgDom.height);
-                                cell.css('line-height', imgDom.height + 'px');
-                            }
-                            if(alt !== '' && alt !== undefined ) {
-                                imgDom.setAttribute('alt', alt);
-                            }
-                            cell.find('a').append(imgDom);
-                        };
-                        imgDom.src = workedImg + '.gif';
+                        createImage(imgDom, 'gif', alt, workedImg, cell);
                     } else {
-                        imgDom.onload = function () {
-                            imgDom.setAttribute('alt', '');
-                            imgDom.setAttribute('width', imgDom.width);
-                            imgDom.setAttribute('height', imgDom.height);
-                            imgDom.style.display = 'block';
-                            if (imgDom.height < 20) {
-                                cell.attr('height', imgDom.height);
-                                cell.css('line-height', imgDom.height + 'px');
-                            }
-                            if(alt !== '' && alt !== undefined ) {
-                                imgDom.setAttribute('alt', alt);
-                            }
-                            cell.find('a').append(imgDom);
-                        };
-                        imgDom.src = workedImg + '.png';
+                        createImage(imgDom, 'png', alt, workedImg, cell);
                     }
                 } else if (text && img !== '') {
                     if (UrlExists(workedImg + '.jpg')) {
