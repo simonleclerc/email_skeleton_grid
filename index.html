@@ -55,27 +55,7 @@
 
     var $renderedHTML;
     $(document).on('click','.generate', function(){
-        $('#output').empty();
-        $('#output_code').val('');
-        $renderedHTML = $('<div></div>');
-        $('body .main').each(function(i, e){
-            var mainWidth = ($(e).find('.main_width').val() + '') || '650';
-            $renderedHTML.append('<table width="'+mainWidth+'" id="table'+i+'" border="0" cellpadding="0" cellspacing="0" align="center" style="border-collapse: collapse;"></table>');
-            $(e).find('.row').each(function(j,$row){
-                $renderedHTML.find('#table'+i).append('<tr id="table'+i+'row'+j+'"><td><table border="0" cellpadding="0" cellspacing="0" align="center" width="100%" style="border-collapse: collapse;"><tr></tr></table></td></tr>');
-                $($row).find('.cell').each(function(k, $cell){
-                    $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(
-                            tableGenerator.cell(getOptions($($cell)))
-                    );
-                });
-            });
-        });
-        $(document).trigger('construct.finish');
-        setTimeout(function(){
-            $('#output_code').val($renderedHTML.html());
-            $('#output').empty().append($renderedHTML.html());
-            //$renderedHTML = undefined;
-        },3000);
+        renderTable();
     });
 
     var gridGenerator = {
@@ -250,10 +230,9 @@
 
     var createImage = function(imgDom, extension, alt, workedImg, cell){
         imgDom.onload = function () {
-            imgDom.setAttribute('alt', '');
+            addGeneralElmOptions(imgDom, 'img');
             imgDom.setAttribute('width', imgDom.width);
             imgDom.setAttribute('height', imgDom.height);
-            imgDom.style.display = 'block';
             if (imgDom.height < 20) {
                 cell.attr('height', imgDom.height);
                 cell.css('line-height', imgDom.height + 'px');
@@ -265,9 +244,114 @@
         };
         imgDom.src = workedImg + '.'+extension;
     }
+
+    var generalElmOptions = {
+        table: {
+            attr: {
+                border: '0',
+                cellpading: '0',
+                cellspacing: '0',
+                align: 'center',
+                width: '100%'
+            },
+            css: {
+                borderCollapse: 'collapse'
+            }
+        },
+        tr: {
+            attr: {},
+            css: {}
+        },
+        td: {
+            attr: {
+                align: 'left'
+            },
+            css: {}
+        },
+        a: {
+            attr: {
+                href: '#newlink',
+                target: '_BLANK'
+            },
+            css: {
+                fontFamily: 'Helvetica, Arial, sans-serif',
+                fontSize: '14px',
+                lineHeight: '16px',
+                textDecoration: 'none',
+                fontWeight: 'normal',
+                color: '#010101'
+            }
+        },
+        img: {
+            attr:{
+                alt: ''
+            },
+            css: {
+                display: 'block'
+            }
+        }
+    }
+
+    var addGeneralElmOptions = function (elm, type) {
+        for(attribute in generalElmOptions[type].attr){
+            elm.setAttribute(attribute, generalElmOptions[type].attr[attribute]);
+        }
+        for(style in generalElmOptions[type].css){
+            elm.style[style] = generalElmOptions[type].css[style];
+        }
+    }
+
+    var renderTable = function(){
+        $('#output').empty();
+        $('#output_code').val('');
+        $renderedHTML = $('<div></div>');
+        var optionsTable = {};
+        $('#skeleton .main').each(function(i, e){
+            optionsTable.width = ($(e).find('.main_width').val() + '') || '650';
+            $renderedHTML.append(
+                    tableGenerator.table(i, optionsTable)
+            );
+            $(e).find('.row').each(function(j,$row){
+                $renderedHTML.find('#table'+i).append(
+                        tableGenerator.row(i, j)
+                );
+                $($row).find('.cell').each(function(k, $cell){
+                    $renderedHTML.find('#table'+i+'row'+j+' td table tr').append(
+                            tableGenerator.cell(getOptions($($cell)))
+                    );
+                });
+            });
+        });
+        $(document).trigger('construct.finish');
+        setTimeout(function(){
+            $('#output_code').val($renderedHTML.html());
+            $('#output').empty().append($renderedHTML.html());
+            //$renderedHTML = undefined;
+        },3000);
+    };
+
     var tableGenerator = {
         options: {
             img_root: $('#img_root').val()
+        },
+        table: function(idTable, options){
+            //$renderedHTML.append('<table width="'+mainWidth+'" id="table'+i+'" border="0" cellpadding="0" cellspacing="0" align="center" style="border-collapse: collapse;"></table>');
+            var $table = $('<table></table>');
+            addGeneralElmOptions($table[0], 'table');
+            $table.attr('id', 'table'+idTable)
+                .attr('width', options.width);
+            return  $table;
+        },
+        row: function(idTable, idRow){
+            var $row = $('<tr></tr>');
+            var $subTable = $('<table></table>');
+            addGeneralElmOptions($row[0], 'tr');
+            $row.attr('id', 'table'+idTable+'row'+idRow);
+            addGeneralElmOptions($subTable[0], 'table');
+            $subTable.append('<tr></tr>');
+            $row.append('<td></td>')
+                .find('td').append($subTable);
+            return $row;
         },
         cell: function(options){
             var img = options.img;
@@ -277,21 +361,12 @@
             var alt = options.alt;
             var cell = $('<td></td>');
             cell.attr('align','left');
+            addGeneralElmOptions(cell[0], 'td');
             bgc != '' ? cell.css('background-color', '#'+bgc) : '';
 
             if(table_include === '' || table_include === undefined ) {
                 var link = $('<a></a>');
-                link.attr('target', '_BLANK')
-                        .attr('href', '#newLink')
-                        .css({
-                            fontFamily: 'Helvetica, Arial, sans-serif',
-                            fontSize: '14px',
-                            lineHeight: '16px',
-                            textDecoration: 'none',
-                            fontWeight: 'normal',
-                            color: '#010101'
-                        });
-
+                addGeneralElmOptions(link[0], 'a');
                 cell.append(link);
 
                 var workedImg;
