@@ -365,9 +365,12 @@
             bgc != '' ? cell.css('background-color', '#'+bgc) : '';
 
             if(table_include === '' || table_include === undefined ) {
-                var link = $('<a></a>');
-                addGeneralElmOptions(link[0], 'a');
-                cell.append(link);
+
+                if (text || img !== '') {
+                    var link = $('<a></a>');
+                    addGeneralElmOptions(link[0], 'a');
+                    cell.append(link);
+                }
 
                 var workedImg;
                 if (img !== '') {
