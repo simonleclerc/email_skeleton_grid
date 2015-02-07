@@ -38,7 +38,67 @@
 <textarea id="output_code"></textarea>
 <script type="text/javascript" src="js/jquery.js"></script>
 <script type="text/javascript" src="js/ui.js"></script>
+<!-- WIP FILE API -->
+<input id="files" type="file" multiple/>
+<output id="result" />
+<script>
+    var imgNameToURL = {};
+    if(window.File && window.FileList && window.FileReader)
+    {
+        var filesInput = document.getElementById("files");
+
+        filesInput.addEventListener("change", function(event){
+
+            var files = event.target.files; //FileList object
+            var output = document.getElementById("result");
+
+            for(var i = 0; i< files.length; i++)
+            {
+                //Only pics
+                if(!files[i].type.match('image'))
+                    continue;
+                (function(index) {
+                    var file = files[index];
+
+
+
+                    var picReader = new FileReader();
+
+                    picReader.addEventListener("load",function(event){
+
+                        var picFile = event.target;
+
+                        var img = new Image();
+
+                            img.addEventListener('load', function(){
+                                    console.log(img.width);
+                                    console.log(picFile);
+                                    console.log(file);
+                                    imgNameToURL[file.name] = picFile.result;
+                            });
+                        img.src = picFile.result;
+
+                    });
+
+                    //Read the image
+                    picReader.readAsDataURL(file);
+                })(i);
+            }
+
+        });
+    }
+    else
+    {
+        console.log("Your browser does not support File API");
+    }
+    </script>
 <script type="text/javascript">
+
+
+
+
+
+
     $(document).on('click', '.add_row',function(){
         gridGenerator.row($(this).closest('.main').children('ul'));
     });
