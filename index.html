@@ -478,10 +478,20 @@
     };
     function UrlExists(url)
     {
+
         var http = new XMLHttpRequest();
         http.open('HEAD', url, false);
         http.send();
         return http.status!=404;
+    }
+
+    function getImage(imgName){
+        for(img in imgNameToURL){
+            console.log(img);
+            if(img.match(imgName)){
+                return imgNameToURL[img];
+            }
+        }
     }
 
     gridGenerator.main();
