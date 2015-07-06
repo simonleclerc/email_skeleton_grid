@@ -187,3 +187,12 @@ button:focus{
     right: 1%;
     text-shadow: 1px 1px 0px rgba(255,255,255,0.3);
 }
+#files {
+    display:inline-block;
+    background: #cacaca;
+    width: 200px;
+    height: 50px;
+}
+.text_include {
+    width: 100px;
+}
