@@ -111,6 +111,7 @@
     });
     $(document).on('click', '.delete',function(){
         $(this).parent().remove();
+        $(document).trigger('grid.refresh');
     });
     $( ".sortable" ).sortable();
 
@@ -129,6 +130,7 @@
             $elmParent.append($cell);
             $( ".sortable" ).sortable();
             $(document).trigger('grid.refresh');
+            return $cell;
         },
         row: function($elmParent){
             var $row = $('<li class="row sortable"><button class="delete">x</button><button class="add_cell">+</button></li></li>');
@@ -136,12 +138,14 @@
             $elmParent.append($row);
             $( ".sortable" ).sortable();
             $(document).trigger('grid.refresh');
+            return $row;
         },
         main: function(){
             var $main = $('<div class="main"><label>W <input class="main_width" type="text"/></label><button class="add_row">+</button><button class="delete">x</button><ul class="row_list sortable"></ul></div>')
             this.row($main.find('.row_list'));
             $('#skeleton').append($main);
             $(document).trigger('grid.refresh');
+            return $main;
         }
 
     };
@@ -214,7 +218,7 @@
             case 'text_include':
                 var optionElm = {0:'---'};
                 for(var i = 0; i < textobject.length; i++) {
-                    optionElm[i+1] = textobject[i];
+                    optionElm[i+1] = decodeURI(textobject[i]);
                 }
                 addInput($elm, 'select', {
                     beforeAppendCallback: addOptionCallback,
@@ -326,7 +330,8 @@
                 width: '100%'
             },
             css: {
-                borderCollapse: 'collapse'
+                borderCollapse: 'collapse',
+                fontFamily: 'Helvetica, Arial, sans-serif'
             }
         },
         tr: {
@@ -345,12 +350,7 @@
                 target: '_BLANK'
             },
             css: {
-                fontFamily: 'Helvetica, Arial, sans-serif',
-                fontSize: '14px',
-                lineHeight: '16px',
-                textDecoration: 'none',
-                fontWeight: 'normal',
-                color: '#010101'
+                textDecoration: 'none'
             }
         },
         img: {
@@ -457,7 +457,7 @@
                 if (text || img !== '') {
                     var textToInclude = '';
                     if(text && (text_include !== '' && text_include != 0)) {
-                        textToInclude = textobject[text_include-1];
+                        textToInclude = decodeURI(textobject[text_include-1]);
                     }
                     var link = $('<a>'+textToInclude+'</a>');
                     addGeneralElmOptions(link[0], 'a');
@@ -565,6 +565,82 @@
         });
     });
 
+    $(document).on('change', '.text', function(){
+        if($(this).is(':checked')){
+            addOption($(this).closest('.cell'),'text_include');
+        } else {
+            removeOption($(this).closest('.cell'),'text_include');
+        }
+    });
+
+    function saveState () {
+        var state = {};
+        state.main = [];
+        $('#skeleton .main').each(function(i, mainElm){
+            state.main.push({});
+            state.main[i].row = [];
+            state.main[i].width = $(mainElm).find('.main_width').val();
+            $(mainElm).find('.row').each(function(j, rowElm){
+                state.main[i].row.push({});
+                state.main[i].row[j].cell = [];
+                $(rowElm).find('.cell').each(function(k, cellElm){
+                    state.main[i].row[j].cell.push({});
+                    state.main[i].row[j].cell[k].options = getOptions($(cellElm));
+                });
+            });
+        });
+        return state;
+    }
+    function constructFromState(state) {
+        state.main.forEach(function(mainArrElm, i, mainArr){
+            var mainElm = gridGenerator.main();
+            state.main[i].row.forEach(function(rowArrElm, j, rowArr){
+                var rowElm = gridGenerator.row($(mainElm));
+                state.main[i].row[j].cell.forEach(function(cellArrElm, k, cellArr){
+                    var cellElm = gridGenerator.cell($(rowElm));
+                });
+            });
+        });
+    }
 </script>
 </body>
 </html>
+<!--<script>-->
+<!--state = {-->
+    <!--main: [-->
+        <!--{-->
+            <!--row: [-->
+                <!--{-->
+                    <!--cell: [-->
+                        <!--{-->
+                            <!--opt1: 'x',-->
+                            <!--opt2: 'y',-->
+                            <!--opt3: 'z'-->
+                        <!--},-->
+                        <!--{-->
+                            <!--opt1: 'x',-->
+                            <!--opt2: 'y',-->
+                            <!--opt3: 'z'-->
+                        <!--}-->
+                    <!--]-->
+                <!--}-->
+            <!--],-->
+            <!--width: '200'-->
+        <!--},-->
+        <!--{-->
+            <!--row: [-->
+                <!--{-->
+                    <!--cell: [-->
+                        <!--{-->
+                            <!--opt1: 'x',-->
+                            <!--opt2: 'y',-->
+                            <!--opt3: 'z'-->
+                        <!--}-->
+                    <!--]-->
+                <!--}-->
+            <!--],-->
+            <!--width: '300'-->
+        <!--}-->
+    <!--]-->
+<!--}-->
+<!--</script>-->
