@@ -14,6 +14,7 @@
         <li class="addOptionText itemMenu" addOption="text">Text</li>
         <li class="addOptionImg itemMenu" addOption="img">Img</li>
         <li class="addOptionBgc itemMenu" addOption="bgc">Bgc</li>
+        <li class="addOptionTextInclude itemMenu" addOption="text_include">text_include</li>
     </ul>
     <ul class="listMenu">
         <li class="itemMenu listMenuMore">Inject code
@@ -31,6 +32,7 @@
 </div>
 <button class="add_main">Add Main</button>
 <button class="generate">Generate</button>
+<input id="files" type="file" multiple/>
 <label>Img root <input type="text" id="img_root" style="width: 500px;"/></label>
 <div id="skeleton">
 </div>
@@ -38,12 +40,71 @@
 <textarea id="output_code"></textarea>
 <script type="text/javascript" src="js/jquery.js"></script>
 <script type="text/javascript" src="js/ui.js"></script>
+<script type="text/javascript" src="js/text.js"></script>
+<!-- WIP FILE API -->
+<output id="result" />
+<script>
+    var imgNameToURL = {};
+    if(window.File && window.FileList && window.FileReader)
+    {
+        var filesInput = document.getElementById("files");
+
+        filesInput.addEventListener("change", function(event){
+
+            var files = event.target.files; //FileList object
+            var output = document.getElementById("result");
+
+            for(var i = 0; i< files.length; i++)
+            {
+                //Only pics
+                if(!files[i].type.match('image'))
+                    continue;
+                (function(index) {
+                    var file = files[index];
+
+
+
+                    var picReader = new FileReader();
+
+                    picReader.addEventListener("load",function(event){
+
+                        var picFile = event.target;
+
+                        var img = new Image();
+
+                            img.addEventListener('load', function(){
+                                    imgNameToURL[file.name] = picFile.result;
+                            });
+                        img.src = picFile.result;
+
+                    });
+
+                    //Read the image
+                    picReader.readAsDataURL(file);
+                })(i);
+            }
+
+        });
+    }
+    else
+    {
+        console.log("Your browser does not support File API");
+    }
+    </script>
 <script type="text/javascript">
+
+
+
+
+
+
     $(document).on('click', '.add_row',function(){
         gridGenerator.row($(this).closest('.main').children('ul'));
     });
     $(document).on('click', '.add_cell',function(){
         gridGenerator.cell($(this).closest('.row'));
+        var prevValue = $(this).closest('.row').children().last('.cell').prev().find('.img').val()
+        if(prevValue != '') $(this).closest('.row').children().last('.cell').find('.img').val(parseInt(prevValue)+1 < 10 ? '0'+(parseInt(prevValue)+1) : parseInt(prevValue)+1);
     });
     $(document).on('click', '.add_main',function(){
         gridGenerator.main();
@@ -150,6 +211,18 @@
                     }
                 });
                 break;
+            case 'text_include':
+                var optionElm = {0:'---'};
+                for(var i = 0; i < textobject.length; i++) {
+                    optionElm[i+1] = textobject[i];
+                }
+                addInput($elm, 'select', {
+                    beforeAppendCallback: addOptionCallback,
+                    label: 'Text include ',
+                    class: type,
+                    optionsElm: optionElm
+                });
+                break;
             case 'table_include':
                 addInput($elm, 'text', {
                     beforeAppendCallback: addOptionCallback,
@@ -202,7 +275,6 @@
                 if($(elm).find('input[type="text"]').length > 0){
                     options[$(elm).attr('option')] = $(elm).find('input').val();
                 } else if($(elm).find('input[type="checkbox"]').length > 1){
-                    console.log('tata   ');
                     var tempArray = [];
                     $(elm).find('input[type="checkbox"]').each(function(j, celm){
                         if($(celm).is(':checked')){
@@ -211,7 +283,6 @@
                     });
                     options[$(elm).attr('option')] = tempArray;
                 } else if($(elm).find('input[type="checkbox"]').length == 1 && $(elm).find('input[type="checkbox"]').is(':checked')){
-                    console.log('toto');
                     options[$(elm).attr('option')] = $(elm).find('input[type="checkbox"]').val();
                 } else if ($(elm).find('select').length > 0){
                     options[$(elm).attr('option')] = $(elm).find('select').val();
@@ -228,7 +299,7 @@
         return options
     }
 
-    var createImage = function(imgDom, extension, alt, workedImg, cell){
+    var createImage = function(imgDom, alt, workedImg, cell){
         imgDom.onload = function () {
             addGeneralElmOptions(imgDom, 'img');
             imgDom.setAttribute('width', imgDom.width);
@@ -242,7 +313,7 @@
             }
             cell.find('a').append(imgDom);
         };
-        imgDom.src = workedImg + '.'+extension;
+        imgDom.src = workedImg;
     }
 
     var generalElmOptions = {
@@ -324,10 +395,25 @@
         });
         $(document).trigger('construct.finish');
         setTimeout(function(){
-            $('#output_code').val($renderedHTML.html());
+
+            $renderedHTMLCode = $renderedHTML.html() + '';
+
+            $renderedHTMLCode = $renderedHTMLCode.replace(/src="([^"]+)"/gi, function(a, b){
+                for (var img in imgNameToURL) {
+                    if(imgNameToURL[img] == b){
+                        var src = 'src="'+img+'"';
+                        return src;
+                    }
+                }
+            }).replace(
+                    /rgb\(\s*([\d]+)\s*,\s*([\d]+)\s*,\s*([\d]+)\s*\)/gi,
+                    function(str, r,g,b){
+                        return rgbToHex(parseInt(r), parseInt(g), parseInt(b))
+                    });
+
+            $('#output_code').val($renderedHTMLCode);
             $('#output').empty().append($renderedHTML.html());
-            //$renderedHTML = undefined;
-        },3000);
+        }, 0);
     };
 
     var tableGenerator = {
@@ -359,6 +445,7 @@
             var text = options.text;
             var table_include = options.table_include;
             var alt = options.alt;
+            var text_include = options.text_include;
             var cell = $('<td></td>');
             cell.attr('align','left');
             addGeneralElmOptions(cell[0], 'td');
@@ -366,8 +453,13 @@
 
             if(table_include === '' || table_include === undefined ) {
 
+
                 if (text || img !== '') {
-                    var link = $('<a></a>');
+                    var textToInclude = '';
+                    if(text && (text_include !== '' && text_include != 0)) {
+                        textToInclude = textobject[text_include-1];
+                    }
+                    var link = $('<a>'+textToInclude+'</a>');
                     addGeneralElmOptions(link[0], 'a');
                     cell.append(link);
                 }
@@ -380,30 +472,19 @@
                     var imgDom = new Image();
                 }
 
+                var image = getImage(workedImg);
                 if (!text && img !== '') {
-                    if (UrlExists(workedImg + '.jpg')) {
-                        createImage(imgDom, 'jpg', alt, workedImg, cell);
-                    } else if (UrlExists(workedImg + '.gif')) {
-                        createImage(imgDom, 'gif', alt, workedImg, cell);
-                    } else {
-                        createImage(imgDom, 'png', alt, workedImg, cell);
+
+                    if(image !== undefined){
+                        createImage(imgDom, alt, image, cell);
                     }
                 } else if (text && img !== '') {
-                    if (UrlExists(workedImg + '.jpg')) {
+                    if(image !== undefined){
+                        createImage(imgDom, alt, workedImg, cell);
                         imgDom.onload = function () {
                             cell.attr('width', imgDom.width);
                         };
-                        imgDom.src = workedImg + '.jpg';
-                    } else if (UrlExists(workedImg + '.gif')) {
-                        imgDom.onload = function () {
-                            cell.attr('width', imgDom.width);
-                        };
-                        imgDom.src = workedImg + '.gif';
-                    } else {
-                        imgDom.onload = function () {
-                            cell.attr('width', imgDom.height);
-                        };
-                        imgDom.src = workedImg + '.png';
+                        imgDom.src = image;
                     }
                 }
 
@@ -418,11 +499,29 @@
     };
     function UrlExists(url)
     {
+
         var http = new XMLHttpRequest();
         http.open('HEAD', url, false);
         http.send();
         return http.status!=404;
     }
+
+    function getImage(imgName){
+        for(img in imgNameToURL){
+            if(img.match(imgName)){
+                return imgNameToURL[img];
+            }
+        }
+    }
+    function componentToHex(c) {
+        var hex = c.toString(16);
+        return hex.length == 1 ? "0" + hex : hex;
+    }
+
+    function rgbToHex(r, g, b) {
+        return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+    }
+
 
     gridGenerator.main();
 
