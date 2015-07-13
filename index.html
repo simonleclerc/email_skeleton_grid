@@ -106,7 +106,7 @@
         addOption($cell, 'text');
         addOption($cell, 'img');
         addOption($cell, 'bgc');
-        saveToHistory('Add Row');
+        historic.addEntry(saveState(), 'Add Row');
     });
     $(document).on('click', '.add_cell',function(){
         var $cell = gridGenerator.cell($(this).closest('.row'));
@@ -115,7 +115,7 @@
         addOption($cell, 'text');
         addOption($cell, 'img');
         addOption($cell, 'bgc');
-        saveToHistory('Add cell');
+        historic.addEntry(saveState(), 'Add cell');
     });
     $(document).on('click', '.add_main',function(){
         var $main = gridGenerator.main();
@@ -124,12 +124,12 @@
         addOption($cell, 'text');
         addOption($cell, 'img');
         addOption($cell, 'bgc');
-        saveToHistory('Add main');
+        historic.addEntry(saveState(), 'Add main');
     });
     $(document).on('click', '.delete',function(){
         $(this).parent().remove();
         $(document).trigger('grid.refresh');
-        saveToHistory('Delete grid item');
+        historic.addEntry(saveState(), 'Delete grid item');
     });
     $( ".sortable" ).sortable();
 
@@ -138,12 +138,11 @@
         renderTable();
     });
     $(document).on('click','.undo', function(){
-        var historyKeys = Object.keys(saveHistory.past);
-        var maxItem = historyKeys.indexOf(Math.max.apply(Math, historyKeys)+'');
-        var removedHistoryKey = historyKeys.splice(maxItem, 1);
-        saveHistory.future[removedHistoryKey] = {}
-        resetTool();
-        constructFromState(saveHistory.past[Math.max.apply(Math, historyKeys)].state);
+        var lastEntry = historic.getLastPreviousEntry();
+        if( lastEntry !== undefined) {
+            resetTool();
+            constructFromState(lastEntry.state);
+        }
     });
 
     var gridGenerator = {
@@ -609,7 +608,6 @@
     addOption($cell, 'img');
     addOption($cell, 'bgc');
 
-
     $(document).on('contextmenu','.cell', function(e){
         var mouse = {};
         var cellTargeted = e.target;
@@ -628,10 +626,10 @@
         $('#contextMenu').on('click.addOption', function(e){
             if($(cellTargeted).find('.'+e.target.getAttribute('addOption')).length === 0){
                 addOption($(cellTargeted), e.target.getAttribute('addOption'));
-                saveToHistory('Add option ' + e.target.getAttribute('addOption'));
+                historic.addEntry(saveState(), 'Add option ' + e.target.getAttribute('addOption'));
             }else{
                 removeOption($(cellTargeted), e.target.getAttribute('addOption'));
-                saveToHistory('Remove option ' + e.target.getAttribute('addOption'));
+                historic.addEntry(saveState(), 'Remove option ' + e.target.getAttribute('addOption'));
             }
         });
 
@@ -677,28 +675,54 @@
         });
         return state;
     }
-    var saveHistory = {
-        past: {},
-        present:{},
-        future: {}
-    };
-    function saveToHistory (message){
-        message = message === undefined ? '' : message;
-        saveHistory.past[saveHistory.present[Object.keys(saveHistory.present)[0]]] = {
-            state: saveHistory.present[Object.keys(saveHistory.present)[0]].state,
-            message: saveHistory.present[Object.keys(saveHistory.present)[0]].message
-        }
-        saveHistory.present = {};
+    function HistoryManager(){
+        this.maxEntry = 5;
+        this.previous = {};
+        this.actual = {};
+        this.next = {};
+        this.addEntry = function(state, message){
+            message = message === undefined ? '' : message;
+            if(Object.keys(this.actual) > 0) {
+                this.previous[Object.keys(this.actual)[0]] = {
+                    state: this.actual[Object.keys(this.actual)[0]].state,
+                    message: this.actual[Object.keys(this.actual)[0]].message
+                }
 
-        saveHistory.present[new Date().getTime()] = {state: saveState(), message: message};
+                this.actual = {};
+            }
+            this.actual[new Date().getTime()] = {state: state, message: message};
 
-        if(Object.keys(saveHistory.past).length > 5) {
-            delete saveHistory[Math.min.apply(Math, Object.keys(saveHistory))];
-        }
+            if(Object.keys(this.previous).length > this.maxEntry) {
+                delete this.previous[Math.min.apply(Math, Object.keys(this.previous))];
+            }
+        };
+        this.getLastPreviousEntry = function(){
+            if(Object.keys(this.previous).length > 0) {
+                var historyKeys = Object.keys(this.previous);
+                var maxItem = historyKeys.indexOf(Math.max.apply(Math, historyKeys) + '');
+                var removedHistoryKey = historyKeys.splice(maxItem, 1);
 
-        saveHistory.future = {};
+                var historyActualKeys = Object.keys(this.actual);
+                this.next[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys].state,
+                    message: this.actual[historyActualKeys].message
+                };
 
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.previous[removedHistoryKey].state,
+                    message: this.previous[removedHistoryKey].message
+                };
+
+                delete this.previous[removedHistoryKey];
+
+                return this.actual[removedHistoryKey];
+            }
+        };
     }
+    var historic = new HistoryManager();
+    historic.addEntry(saveState(), 'New Document');
+
     function constructFromState(state) {
         state.main.forEach(function(mainArrElm, i, mainArr){
             var mainElm = gridGenerator.main();
@@ -714,7 +738,7 @@
         });
     }
     $(document).on('change', 'input', function(){
-        saveToHistory('chg input');
+        historic.addEntry(saveState(), 'chg input');
     });
     function resetTool () {
         $('#skeleton').children().remove();
