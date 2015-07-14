@@ -34,6 +34,7 @@
 <button class="generate">Generate</button>
 <button class="undo">Undo</button>
 <button class="redo">Redo</button>
+<button class="reset">Reset</button>
 <input id="files" type="file" multiple/>
 <label>Img root <input type="text" id="img_root" style="width: 500px;"/></label>
 <div id="skeleton">
@@ -145,6 +146,7 @@
         if( lastEntry !== undefined) {
             resetTool();
             constructFromState(lastEntry.state);
+            saveState();
         }
     });
     $(document).on('click','.redo', function(){
@@ -152,7 +154,18 @@
         if( lastEntry !== undefined) {
             resetTool();
             constructFromState(lastEntry.state);
+            saveState();
         }
+    });
+    $(document).on('click','.reset', function(){
+        resetTool();
+        var $main = gridGenerator.main();
+        var $row = gridGenerator.row($main.find('.row_list'));
+        var $cell = gridGenerator.cell($row);
+        addOption($cell, 'text');
+        addOption($cell, 'img');
+        addOption($cell, 'bgc');
+        historic.addEntry(saveState(), 'New Document');
     });
 
     var gridGenerator = {
@@ -609,14 +622,17 @@
         return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
     }
 
-
-
-    var $main = gridGenerator.main();
-    var $row = gridGenerator.row($main.find('.row_list'));
-    var $cell = gridGenerator.cell($row);
-    addOption($cell, 'text');
-    addOption($cell, 'img');
-    addOption($cell, 'bgc');
+    var stateFromLocalStorage = JSON.parse(localStorage.getItem('emailSkeletonState'));
+    if(stateFromLocalStorage) {
+        constructFromState(stateFromLocalStorage);
+    } else {
+        var $main = gridGenerator.main();
+        var $row = gridGenerator.row($main.find('.row_list'));
+        var $cell = gridGenerator.cell($row);
+        addOption($cell, 'text');
+        addOption($cell, 'img');
+        addOption($cell, 'bgc');
+    }
 
     $(document).on('contextmenu','.cell', function(e){
         var mouse = {};
@@ -683,6 +699,7 @@
                 });
             });
         });
+        localStorage.setItem('emailSkeletonState', JSON.stringify(state));
         return state;
     }
     function HistoryManager(){
@@ -690,6 +707,8 @@
         this.previous = {};
         this.actual = {};
         this.next = {};
+        this.localStorageName = 'historyManager';
+        this.useLocalStorage = true;
         this.addEntry = function(state, message){
             message = message === undefined ? '' : message;
             if(Object.keys(this.actual) > 0) {
@@ -704,6 +723,9 @@
 
             if(Object.keys(this.previous).length > this.maxEntry) {
                 delete this.previous[Math.min.apply(Math, Object.keys(this.previous))];
+            }
+            if(this.useLocalStorage) {
+                localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
             }
         };
         this.getAllEntries = function() {
@@ -733,6 +755,9 @@
 
                 delete this.previous[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -762,6 +787,9 @@
 
                 this.previous = {};
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -785,6 +813,9 @@
 
                 delete this.next[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -814,6 +845,9 @@
 
                 this.next = {};
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -845,6 +879,9 @@
                 };
                 delete this.previous[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -876,6 +913,9 @@
                 };
                 delete this.previous[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -907,6 +947,9 @@
                 };
                 delete this.next[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
@@ -938,12 +981,25 @@
                 };
                 delete this.next[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
+        this.importHistory = function(historyToImport) {
+            this.previous = historyToImport.previous;
+            this.actual = historyToImport.actual;
+            this.next = historyToImport.next;
+        };
     }
     var historic = new HistoryManager();
-    historic.addEntry(saveState(), 'New Document');
+    var historyMangerFromLocalStorage = JSON.parse(localStorage.getItem('historyManager'));
+    if(historyMangerFromLocalStorage) {
+        historic.importHistory(historyMangerFromLocalStorage);
+    } else {
+        historic.addEntry(saveState(), 'New Document');
+    }
 
     function constructFromState(state) {
         state.main.forEach(function(mainArrElm, i, mainArr){
@@ -959,7 +1015,7 @@
             });
         });
     }
-    $(document).on('change', 'input', function(){
+    $(document).on('change', 'input, select', function(){
         historic.addEntry(saveState(), 'chg input');
     });
     function resetTool () {
