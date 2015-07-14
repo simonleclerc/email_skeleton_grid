@@ -102,34 +102,36 @@
 
 
 
+function addCellWithParam(elmParent){
+    var $cell = gridGenerator.cell(elmParent);
+    var prevValue = $(this).closest('.row').children().last('.cell').prev().find('.img').val();
+    addOption($cell, 'text');
+    addOption($cell, 'img');
+    addOption($cell, 'bgc');
+    if(prevValue != '') $(this).closest('.row').children().last('.cell').find('.img').val(parseInt(prevValue)+1 < 10 ? '0'+(parseInt(prevValue)+1) : parseInt(prevValue)+1);
+    historic.addEntry(saveState(), 'Add cell');
+}
+function addRowWithParam(elmParent){
+    var $row = gridGenerator.row(elmParent);
+    var $cell = gridGenerator.cell($row);
+    addOption($cell, 'text');
+    addOption($cell, 'img');
+    addOption($cell, 'bgc');
+    historic.addEntry(saveState(), 'Add Row');
+}
+function addMainWithParam(){
+    var $main = gridGenerator.main();
+    var $row = gridGenerator.row($main);
+    var $cell = gridGenerator.cell($row);
+    addOption($cell, 'text');
+    addOption($cell, 'img');
+    addOption($cell, 'bgc');
+    historic.addEntry(saveState(), 'Add main');
+}
 
-
-    $(document).on('click', '.add_row',function(){
-        var $row = gridGenerator.row($(this).closest('.main').children('ul'));
-        var $cell = gridGenerator.cell($row);
-        addOption($cell, 'text');
-        addOption($cell, 'img');
-        addOption($cell, 'bgc');
-        historic.addEntry(saveState(), 'Add Row');
-    });
-    $(document).on('click', '.add_cell',function(){
-        var $cell = gridGenerator.cell($(this).closest('.row'));
-        var prevValue = $(this).closest('.row').children().last('.cell').prev().find('.img').val();
-        addOption($cell, 'text');
-        addOption($cell, 'img');
-        addOption($cell, 'bgc');
-        if(prevValue != '') $(this).closest('.row').children().last('.cell').find('.img').val(parseInt(prevValue)+1 < 10 ? '0'+(parseInt(prevValue)+1) : parseInt(prevValue)+1);
-        historic.addEntry(saveState(), 'Add cell');
-    });
-    $(document).on('click', '.add_main',function(){
-        var $main = gridGenerator.main();
-        var $row = gridGenerator.row($main);
-        var $cell = gridGenerator.cell($row);
-        addOption($cell, 'text');
-        addOption($cell, 'img');
-        addOption($cell, 'bgc');
-        historic.addEntry(saveState(), 'Add main');
-    });
+    $(document).on('click', '.add_row', function(){addRowWithParam($(this).closest('.main').children('ul'));});
+    $(document).on('click', '.add_cell',function(){addCellWithParam($(this).closest('.row'));});
+    $(document).on('click', '.add_main',addMainWithParam);
     $(document).on('click', '.delete',function(){
         $(this).parent().remove();
         $(document).trigger('grid.refresh');
@@ -1021,6 +1023,43 @@
     function resetTool () {
         $('#skeleton').children().remove();
     }
+    var hoveredCell, hoveredRow, hoveredMain;
+    $(document).on('mouseenter', '.cell', function(){
+        hoveredCell = $(this);
+    });
+    $(document).on('mouseenter', '.row', function(){
+        hoveredRow = $(this);
+    });
+    $(document).on('mouseenter', '.main', function(){
+        hoveredMain = $(this);
+    });
+$(document).on('keypress', 'body', function(e){
+    if(
+            document.activeElement.nodeName == 'INPUT' ||
+            document.activeElement.nodeName == 'SELECT' ||
+            document.activeElement.nodeName == 'TEXTAREA'
+    ) {return;}
+    switch (e.keyCode) {
+        case 81: //Q
+            addMainWithParam();
+            break;
+        case 90://Z
+            var lastEntry = historic.goToLastPreviousEntry();
+            if( lastEntry !== undefined) {
+                resetTool();
+                constructFromState(lastEntry.state);
+                saveState();
+            }
+            break;
+        case 83: //S
+            addRowWithParam(hoveredMain.children('ul'));
+            break;
+        case 68: //D
+            addCellWithParam(hoveredRow);
+            break;
+    }
+});
 </script>
+
 </body>
 </html>
