@@ -34,6 +34,7 @@
 <button class="generate">Generate</button>
 <button class="undo">Undo</button>
 <button class="redo">Redo</button>
+<button class="reset">Reset</button>
 <input id="files" type="file" multiple/>
 <label>Img root <input type="text" id="img_root" style="width: 500px;"/></label>
 <div id="skeleton">
@@ -46,6 +47,9 @@
 <!-- WIP FILE API -->
 <output id="result" />
 <script>
+    function sortNumber(a,b) {
+        return a - b;
+    }
     var imgNameToURL = {};
     if(window.File && window.FileList && window.FileReader)
     {
@@ -98,34 +102,36 @@
 
 
 
+function addCellWithParam(elmParent){
+    var $cell = gridGenerator.cell(elmParent);
+    var prevValue = elmParent.children().last('.cell').prev().find('.img').val();
+    addOption($cell, 'text');
+    addOption($cell, 'img');
+    addOption($cell, 'bgc');
+    if(prevValue != '') elmParent.children().last('.cell').find('.img').val(parseInt(prevValue)+1 < 10 ? '0'+(parseInt(prevValue)+1) : parseInt(prevValue)+1);
+    historic.addEntry(saveState(), 'Add cell');
+}
+function addRowWithParam(elmParent){
+    var $row = gridGenerator.row(elmParent);
+    var $cell = gridGenerator.cell($row);
+    addOption($cell, 'text');
+    addOption($cell, 'img');
+    addOption($cell, 'bgc');
+    historic.addEntry(saveState(), 'Add Row');
+}
+function addMainWithParam(){
+    var $main = gridGenerator.main();
+    var $row = gridGenerator.row($main);
+    var $cell = gridGenerator.cell($row);
+    addOption($cell, 'text');
+    addOption($cell, 'img');
+    addOption($cell, 'bgc');
+    historic.addEntry(saveState(), 'Add main');
+}
 
-
-    $(document).on('click', '.add_row',function(){
-        var $row = gridGenerator.row($(this).closest('.main').children('ul'));
-        var $cell = gridGenerator.cell($row);
-        addOption($cell, 'text');
-        addOption($cell, 'img');
-        addOption($cell, 'bgc');
-        historic.addEntry(saveState(), 'Add Row');
-    });
-    $(document).on('click', '.add_cell',function(){
-        var $cell = gridGenerator.cell($(this).closest('.row'));
-        var prevValue = $(this).closest('.row').children().last('.cell').prev().find('.img').val()
-        if(prevValue != '') $(this).closest('.row').children().last('.cell').find('.img').val(parseInt(prevValue)+1 < 10 ? '0'+(parseInt(prevValue)+1) : parseInt(prevValue)+1);
-        addOption($cell, 'text');
-        addOption($cell, 'img');
-        addOption($cell, 'bgc');
-        historic.addEntry(saveState(), 'Add cell');
-    });
-    $(document).on('click', '.add_main',function(){
-        var $main = gridGenerator.main();
-        var $row = gridGenerator.row($main);
-        var $cell = gridGenerator.cell($row);
-        addOption($cell, 'text');
-        addOption($cell, 'img');
-        addOption($cell, 'bgc');
-        historic.addEntry(saveState(), 'Add main');
-    });
+    $(document).on('click', '.add_row', function(){addRowWithParam($(this).closest('.main').children('ul'));});
+    $(document).on('click', '.add_cell',function(){addCellWithParam($(this).closest('.row'));});
+    $(document).on('click', '.add_main',addMainWithParam);
     $(document).on('click', '.delete',function(){
         $(this).parent().remove();
         $(document).trigger('grid.refresh');
@@ -138,11 +144,30 @@
         renderTable();
     });
     $(document).on('click','.undo', function(){
-        var lastEntry = historic.getLastPreviousEntry();
+        var lastEntry = historic.goToLastPreviousEntry();
         if( lastEntry !== undefined) {
             resetTool();
             constructFromState(lastEntry.state);
+            saveState();
         }
+    });
+    $(document).on('click','.redo', function(){
+        var lastEntry = historic.goToFirstNextEntry();
+        if( lastEntry !== undefined) {
+            resetTool();
+            constructFromState(lastEntry.state);
+            saveState();
+        }
+    });
+    $(document).on('click','.reset', function(){
+        resetTool();
+        var $main = gridGenerator.main();
+        var $row = gridGenerator.row($main.find('.row_list'));
+        var $cell = gridGenerator.cell($row);
+        addOption($cell, 'text');
+        addOption($cell, 'img');
+        addOption($cell, 'bgc');
+        historic.addEntry(saveState(), 'New Document');
     });
 
     var gridGenerator = {
@@ -408,7 +433,7 @@
             },
             css: {
                 borderCollapse: 'collapse',
-                fontFamily: 'Helvetica, Arial, sans-serif'
+                fontFamily: 'Arial, Helvetica, sans-serif'
             }
         },
         tr: {
@@ -417,7 +442,8 @@
         },
         td: {
             attr: {
-                align: 'left'
+                align: 'left',
+                verticalAlign: 'middle'
             },
             css: {}
         },
@@ -599,14 +625,17 @@
         return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
     }
 
-
-
-    var $main = gridGenerator.main();
-    var $row = gridGenerator.row($main);
-    var $cell = gridGenerator.cell($row);
-    addOption($cell, 'text');
-    addOption($cell, 'img');
-    addOption($cell, 'bgc');
+    var stateFromLocalStorage = JSON.parse(localStorage.getItem('emailSkeletonState'));
+    if(stateFromLocalStorage) {
+        constructFromState(stateFromLocalStorage);
+    } else {
+        var $main = gridGenerator.main();
+        var $row = gridGenerator.row($main.find('.row_list'));
+        var $cell = gridGenerator.cell($row);
+        addOption($cell, 'text');
+        addOption($cell, 'img');
+        addOption($cell, 'bgc');
+    }
 
     $(document).on('contextmenu','.cell', function(e){
         var mouse = {};
@@ -673,6 +702,7 @@
                 });
             });
         });
+        localStorage.setItem('emailSkeletonState', JSON.stringify(state));
         return state;
     }
     function HistoryManager(){
@@ -680,6 +710,8 @@
         this.previous = {};
         this.actual = {};
         this.next = {};
+        this.localStorageName = 'historyManager';
+        this.useLocalStorage = true;
         this.addEntry = function(state, message){
             message = message === undefined ? '' : message;
             if(Object.keys(this.actual) > 0) {
@@ -695,8 +727,18 @@
             if(Object.keys(this.previous).length > this.maxEntry) {
                 delete this.previous[Math.min.apply(Math, Object.keys(this.previous))];
             }
+            if(this.useLocalStorage) {
+                localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+            }
         };
-        this.getLastPreviousEntry = function(){
+        this.getAllEntries = function() {
+            return {
+                previous: this.previous,
+                actual: this.actual,
+                next: this.next
+            }
+        };
+        this.goToLastPreviousEntry = function(){
             if(Object.keys(this.previous).length > 0) {
                 var historyKeys = Object.keys(this.previous);
                 var maxItem = historyKeys.indexOf(Math.max.apply(Math, historyKeys) + '');
@@ -704,8 +746,8 @@
 
                 var historyActualKeys = Object.keys(this.actual);
                 this.next[historyActualKeys[0]] = {
-                    state: this.actual[historyActualKeys].state,
-                    message: this.actual[historyActualKeys].message
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
                 };
 
                 this.actual = {};
@@ -716,18 +758,257 @@
 
                 delete this.previous[removedHistoryKey];
 
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
                 return this.actual[removedHistoryKey];
             }
         };
+        this.goToFirstPreviousEntry = function(){
+            if(Object.keys(this.previous).length > 0) {
+                var historyKeys = Object.keys(this.previous);
+                var minItem = historyKeys.indexOf(Math.min.apply(Math, historyKeys) + '');
+                var removedHistoryKey = historyKeys.splice(minItem, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.next[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+                for (var i = 0; i < historyKeys.length; i++){
+                    this.next[historyKeys[i]] = {
+                        state: this.previous[historyKeys[i]].state,
+                        message: this.previous[historyKeys[i]].message
+                    }
+                }
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.previous[removedHistoryKey].state,
+                    message: this.previous[removedHistoryKey].message
+                };
+
+                this.previous = {};
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.goToFirstNextEntry = function(){
+            if(Object.keys(this.next).length > 0) {
+                var historyKeys = Object.keys(this.next);
+                var minItem = historyKeys.indexOf(Math.min.apply(Math, historyKeys) + '');
+                var removedHistoryKey = historyKeys.splice(minItem, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.previous[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.next[removedHistoryKey].state,
+                    message: this.next[removedHistoryKey].message
+                };
+
+                delete this.next[removedHistoryKey];
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.goToLastNextEntry = function(){
+            if(Object.keys(this.next).length > 0) {
+                var historyKeys = Object.keys(this.next);
+                var maxItem = historyKeys.indexOf(Math.max.apply(Math, historyKeys) + '');
+                var removedHistoryKey = historyKeys.splice(maxItem, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.previous[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+                for (var i = 0; i < historyKeys.length; i++){
+                    this.previous[historyKeys[i]] = {
+                        state: this.next[historyKeys[i]].state,
+                        message: this.next[historyKeys[i]].message
+                    }
+                }
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.next[removedHistoryKey].state,
+                    message: this.next[removedHistoryKey].message
+                };
+
+                this.next = {};
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.goToNthPreviousEntryFromEnd = function(nth){
+            if(Object.keys(this.previous).length > 0 && nth > 0) {
+                var historyKeys = Object.keys(this.previous);
+                historyKeys.sort(sortNumber).reverse();
+
+                var toMoveHistoryKey = historyKeys.splice(0, nth-1);
+                var removedHistoryKey = historyKeys.splice(0, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.next[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+                for (var i = 0; i < toMoveHistoryKey.length; i++){
+                    this.next[toMoveHistoryKey[i]] = {
+                        state: this.previous[toMoveHistoryKey[i]].state,
+                        message: this.previous[toMoveHistoryKey[i]].message
+                    }
+                    delete this.previous[toMoveHistoryKey[i]];
+                }
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.previous[removedHistoryKey].state,
+                    message: this.previous[removedHistoryKey].message
+                };
+                delete this.previous[removedHistoryKey];
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.goToNthPreviousEntryFromStart = function(nth){
+            if(Object.keys(this.previous).length > 0 && nth > 0) {
+                var historyKeys = Object.keys(this.previous);
+                historyKeys.sort(sortNumber);
+
+                var toMoveHistoryKey = historyKeys.splice(0, nth-1);
+                var removedHistoryKey = historyKeys.splice(0, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.next[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+                for (var i = 0; i < toMoveHistoryKey.length; i++){
+                    this.next[toMoveHistoryKey[i]] = {
+                        state: this.previous[toMoveHistoryKey[i]].state,
+                        message: this.previous[toMoveHistoryKey[i]].message
+                    }
+                    delete this.previous[toMoveHistoryKey[i]];
+                }
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.previous[removedHistoryKey].state,
+                    message: this.previous[removedHistoryKey].message
+                };
+                delete this.previous[removedHistoryKey];
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.goToNthNextEntryFromStart = function(nth){
+            if(Object.keys(this.next).length > 0 && nth > 0) {
+                var historyKeys = Object.keys(this.next);
+                historyKeys.sort(sortNumber);
+
+                var toMoveHistoryKey = historyKeys.splice(0, nth-1);
+                var removedHistoryKey = historyKeys.splice(0, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.previous[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+                for (var i = 0; i < toMoveHistoryKey.length; i++){
+                    this.previous[toMoveHistoryKey[i]] = {
+                        state: this.next[toMoveHistoryKey[i]].state,
+                        message: this.next[toMoveHistoryKey[i]].message
+                    }
+                    delete this.next[toMoveHistoryKey[i]];
+                }
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.next[removedHistoryKey].state,
+                    message: this.next[removedHistoryKey].message
+                };
+                delete this.next[removedHistoryKey];
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.goToNthNextEntryFromEnd = function(nth){
+            if(Object.keys(this.next).length > 0 && nth > 0) {
+                var historyKeys = Object.keys(this.next);
+                historyKeys.sort(sortNumber).reverse();
+
+                var toMoveHistoryKey = historyKeys.splice(0, nth-1);
+                var removedHistoryKey = historyKeys.splice(0, 1);
+
+                var historyActualKeys = Object.keys(this.actual);
+                this.previous[historyActualKeys[0]] = {
+                    state: this.actual[historyActualKeys[0]].state,
+                    message: this.actual[historyActualKeys[0]].message
+                };
+                for (var i = 0; i < toMoveHistoryKey.length; i++){
+                    this.previous[toMoveHistoryKey[i]] = {
+                        state: this.next[toMoveHistoryKey[i]].state,
+                        message: this.next[toMoveHistoryKey[i]].message
+                    }
+                    delete this.next[toMoveHistoryKey[i]];
+                }
+
+                this.actual = {};
+                this.actual[removedHistoryKey] = {
+                    state: this.next[removedHistoryKey].state,
+                    message: this.next[removedHistoryKey].message
+                };
+                delete this.next[removedHistoryKey];
+
+                if(this.useLocalStorage) {
+                    localStorage.setItem(this.localStorageName, JSON.stringify(this.getAllEntries()));
+                }
+                return this.actual[removedHistoryKey];
+            }
+        };
+        this.importHistory = function(historyToImport) {
+            this.previous = historyToImport.previous;
+            this.actual = historyToImport.actual;
+            this.next = historyToImport.next;
+        };
     }
     var historic = new HistoryManager();
-    historic.addEntry(saveState(), 'New Document');
+    var historyMangerFromLocalStorage = JSON.parse(localStorage.getItem('historyManager'));
+    if(historyMangerFromLocalStorage) {
+        historic.importHistory(historyMangerFromLocalStorage);
+    } else {
+        historic.addEntry(saveState(), 'New Document');
+    }
 
     function constructFromState(state) {
         state.main.forEach(function(mainArrElm, i, mainArr){
             var mainElm = gridGenerator.main();
             state.main[i].row.forEach(function(rowArrElm, j, rowArr){
-                var rowElm = gridGenerator.row($(mainElm));
+                var rowElm = gridGenerator.row($(mainElm).children('ul'));
                 state.main[i].row[j].cell.forEach(function(cellArrElm, k, cellArr){
                     var cellElm = gridGenerator.cell($(rowElm));
                     for (option in state.main[i].row[j].cell[k].options) {
@@ -737,12 +1018,49 @@
             });
         });
     }
-    $(document).on('change', 'input', function(){
+    $(document).on('change', 'input, select', function(){
         historic.addEntry(saveState(), 'chg input');
     });
     function resetTool () {
         $('#skeleton').children().remove();
     }
+    var hoveredCell, hoveredRow, hoveredMain;
+    $(document).on('mouseenter', '.cell', function(){
+        hoveredCell = $(this);
+    });
+    $(document).on('mouseenter', '.row', function(){
+        hoveredRow = $(this);
+    });
+    $(document).on('mouseenter', '.main', function(){
+        hoveredMain = $(this);
+    });
+$(document).on('keypress', 'body', function(e){
+    if(
+            document.activeElement.nodeName == 'INPUT' ||
+            document.activeElement.nodeName == 'SELECT' ||
+            document.activeElement.nodeName == 'TEXTAREA'
+    ) {return;}
+    switch (e.keyCode) {
+        case 81: //Q
+            addMainWithParam();
+            break;
+        case 90://Z
+            var lastEntry = historic.goToLastPreviousEntry();
+            if( lastEntry !== undefined) {
+                resetTool();
+                constructFromState(lastEntry.state);
+                saveState();
+            }
+            break;
+        case 83: //S
+            addRowWithParam(hoveredMain.children('ul'));
+            break;
+        case 68: //D
+            addCellWithParam(hoveredRow);
+            break;
+    }
+});
 </script>
+
 </body>
 </html>
