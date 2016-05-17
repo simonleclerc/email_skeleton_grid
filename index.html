@@ -499,7 +499,9 @@ function addMainWithParam(){
         });
         $(document).trigger('construct.finish');
         setTimeout(function(){
-
+            $renderedHTML.find('[data-center="center"]').each(function() {
+                $(this).removeAttr('data-center').closest('td').attr('align', 'center');
+            });
             $renderedHTMLCode = $renderedHTML.html() + '';
 
             $renderedHTMLCode = $renderedHTMLCode.replace(/src="([^"]+)"/gi, function(a, b){
@@ -514,7 +516,6 @@ function addMainWithParam(){
                     function(str, r,g,b){
                         return rgbToHex(parseInt(r), parseInt(g), parseInt(b))
                     });
-
             $('#output_code').val($renderedHTMLCode);
             $('#output').empty().append($renderedHTML.html());
         }, 0);
