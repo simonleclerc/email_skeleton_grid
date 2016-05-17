@@ -503,6 +503,12 @@ function addMainWithParam(){
             $renderedHTML.find('[data-center="center"]').each(function() {
                 $(this).removeAttr('data-center').closest('td').attr('align', 'center');
             });
+            $renderedHTML.find('[data-center="left"]').each(function() {
+                $(this).removeAttr('data-center');
+            });
+            $renderedHTML.find('[data-center="right"]').each(function() {
+                $(this).removeAttr('data-center').closest('td').attr('align', 'right');
+            });
             $renderedHTMLCode = $renderedHTML.html() + '';
 
             $renderedHTMLCode = $renderedHTMLCode.replace(/src="([^"]+)"/gi, function(a, b){
@@ -541,7 +547,7 @@ function addMainWithParam(){
             $row.attr('id', 'table'+idTable+'row'+idRow);
             addGeneralElmOptions($subTable[0], 'table');
             $subTable.append('<tr></tr>');
-            $row.append('<td></td>')
+            $row.append('<td align="center"></td>')
                 .find('td').append($subTable);
             return $row;
         },
